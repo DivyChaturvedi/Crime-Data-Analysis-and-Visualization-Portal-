@@ -16,11 +16,13 @@
 - [Overview](#-overview)
 - [Key Features](#-key-features)
 - [System Architecture & ML Engine](#-system-architecture--ml-engine)
+- [Security & Hardening Architecture](#-security--hardening-architecture)
 - [Tech Stack](#-tech-stack)
 - [Project Directory Structure](#-project-directory-structure)
 - [Getting Started / Installation](#-getting-started--installation)
 - [Default Demo Credentials](#-default-demo-credentials)
 - [Platform Navigation & Routes](#-platform-navigation--routes)
+- [REST API Reference](#-rest-api-reference)
 - [Bulk Data Import Format](#-bulk-data-import-format)
 - [Future Roadmap](#-future-roadmap)
 - [License & Author](#-license--author)
@@ -55,7 +57,7 @@ Designed around real-world municipal and district policing scenarios (configured
 
 ### 📋 4. End-to-End FIR & Complaint Management
 - **Citizen E-Filing**: Intuitive complaint submission with location coordinates, nearest landmark, date-time pickers, weapon tracking, and victim demographic metadata.
-- **Evidence Attachment**: Secure multi-format upload for photos, documents, and proof files.
+- **Evidence Attachment**: Secure multi-format upload with strict file type and size restrictions.
 - **Automated Case Tracking**: Auto-generates unique FIR case numbers (e.g. `FIR-202609-A4F19B`).
 - **Complete Workflow Lifecycle**: Status transitions from `Pending Verification` ➔ `Approved & Registered` ➔ `Under Active Investigation` ➔ `Case Solved / Closed` or `Rejected`.
 
@@ -69,12 +71,12 @@ Designed around real-world municipal and district policing scenarios (configured
 - **Public Safety Broadcasts**: Real-time bulletins for high-risk advisories, night patrol dispatch notices, and emergency alerts.
 
 ### 🚔 7. Police Command Center & Patrol Dispatcher
-- **Staff-Only Admin Panel**: Centralized incident review, quick status updates, and Investigating Officer (IO) assignments.
+- **Staff-Only Admin Panel**: Centralized incident review, quick CSRF-protected status updates, and Investigating Officer (IO) assignments.
 - **Patrol Scheduling System**: Shift-based patrol scheduling (Morning, Evening, Night) with assigned PCR units, sectors, and officer-in-charge contacts.
 
 ### 🔐 8. Authentication & Role-Based Access Control (RBAC)
 - Multi-tier permission levels: **Super Administrator**, **Police Officer / Staff**, and **Citizen User**.
-- Two-Factor / OTP verification flow for new citizen registrations.
+- Two-Factor / OTP verification flow for new citizen registrations with brute-force lockout.
 - Citizen profile dashboard to track all personal lodged complaints in real time.
 
 ---
@@ -112,6 +114,19 @@ Designed around real-world municipal and district policing scenarios (configured
                                     │     PostgreSQL)       │
                                     └───────────────────────┘
 ```
+
+---
+
+## 🔒 Security & Hardening Architecture
+
+CDAVP is designed following OWASP Top 10 guidelines and secure engineering practices:
+
+- **SQL Injection Immunity**: 100% of database interactions utilize Django's ORM parameterized queries with zero raw SQL execution.
+- **CSRF Defense**: All state-changing forms and administrative status changes enforce POST-only requests with CSRF token verification.
+- **File Upload Hardening**: Evidence attachments are restricted to approved formats (`.pdf`, `.jpg`, `.jpeg`, `.png`, `.webp`) with a strict 5 MB size limit.
+- **CSPRNG OTP Generator**: OTP verification employs Python's `secrets` / `random.SystemRandom()` for cryptographically secure pseudo-random numbers with automatic account lockout after 5 failed attempts.
+- **Formula Injection Defense (CWE-1236)**: Exported CSV fields are automatically sanitized against spreadsheet formula injection triggers (`=`, `+`, `-`, `@`).
+- **Production Safety Guards**: The database seeder (`seed_data`) contains an active runtime guard that blocks execution when `DEBUG=False` unless the explicit `--force` flag is supplied.
 
 ---
 
@@ -167,6 +182,7 @@ CDAVP/
 │   └── 500.html                # Internal Server Error page
 ├── .env.example                # Sample environment configuration
 ├── .gitignore                  # Git ignore rules
+├── LICENSE                     # MIT Open Source License
 ├── manage.py                   # Django CLI management utility
 ├── requirements.txt            # Python dependencies
 ├── run_server.bat              # One-click Windows launch script
@@ -244,7 +260,7 @@ python manage.py migrate
 
 ---
 
-### 7. Seed Initial Demo Data *(Recommended)*
+### 7. Seed Initial Demo Data *(Recommended for Local Testing)*
 
 Populate your database with realistic Khargone district crime records, patrol schedules, public safety alerts, and pre-configured accounts:
 
@@ -272,7 +288,8 @@ Now open your browser and navigate to:
 
 ## 🔑 Default Demo Credentials
 
-When using `python manage.py seed_data`, the following demo accounts are created:
+> [!IMPORTANT]
+> **Security Notice:** The accounts below are created strictly for local sandbox testing and academic review. In production deployments, never use default credentials; always create a dedicated superuser using `python manage.py createsuperuser` with a strong, private password.
 
 | Role | Username | Password | Access Level |
 |---|---|---|---|
@@ -301,9 +318,21 @@ When using `python manage.py seed_data`, the following demo accounts are created
 
 ---
 
+## 🔌 REST API Reference
+
+The portal exposes authenticated JSON endpoints for integration with external dashboards, emergency services, or mobile applications:
+
+| Endpoint | Method | Params / Payload | Description |
+|---|---|---|---|
+| `/api/crimes/` | `GET` | None | Returns verified crime records in JSON format with coordinates and metadata for dynamic map rendering. |
+| `/api/ml/predict/` | `GET` | `?lat=21.8247&lng=75.6102` | Calculates real-time spatio-temporal risk score (0-100%) and confidence metric for given coordinates. |
+| `/api/ml/classify-text/` | `GET` | `?text=Incident+description...` | Classifies narrative text using TF-IDF NLP model to return predicted crime category and severity level. |
+
+---
+
 ## 📑 Bulk Data Import Format
 
-To upload bulk crime records via `/crimes/upload/`, use a CSV or plain text file with this structure:
+To upload bulk crime records via `/crimes/upload/`, use a CSV file with this structure:
 
 ```csv
 crime_type,date_time,location_name,latitude,longitude,description
@@ -330,7 +359,7 @@ assault,2026-03-17 19:45:00,Naya Bazaar,21.8210,75.6130,Physical altercation out
 
 - **Author**: [Divy Chaturvedi](https://github.com/DivyChaturvedi)
 - **Repository**: [Crime-Data-Analysis-and-Visualization-Portal-](https://github.com/DivyChaturvedi/Crime-Data-Analysis-and-Visualization-Portal-)
-- **License**: Distributed under the **MIT License**. See `LICENSE` for more information.
+- **License**: Distributed under the **MIT License**. See [LICENSE](LICENSE) for more information.
 
 ---
 
