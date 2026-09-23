@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}Safety Alerts & Broadcasts – CDAVP Portal{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HERO -->
+<div class="page-hero d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+  <div>
+    <div class="hero-tag"><i class="fa-solid fa-bullhorn"></i> Public Safety</div>
+    <h1 class="hero-title">Emergency Broadcasts & Advisories</h1>
+    <p class="hero-desc">
+      Official security alerts, patrol notices, and citizen warnings issued by Khargone Police Department.
+    </p>
+  </div>
+  {% if user.is_staff and form %}
+  <div>
+    <button class="btn-danger-custom" data-bs-toggle="modal" data-bs-target="#newAlertModal">
+      <i class="fa-solid fa-bullhorn me-1"></i> Post New Advisory
+    </button>
+  </div>
+  {% endif %}
+</div>
+
+<!-- 24/7 HELPLINES -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <a href="tel:100" class="stat-box d-block text-decoration-none border-danger">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label text-danger">Police Control</span>
+        <div class="stat-box-icon" style="background: var(--danger-subtle); color: var(--danger);"><i class="fa-solid fa-phone"></i></div>
+      </div>
+      <div class="stat-box-value text-danger fs-4">100 / 112</div>
+      <small class="text-muted">Instant Emergency</small>
+    </a>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <a href="tel:1090" class="stat-box d-block text-decoration-none">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label">Women Helpline</span>
+        <div class="stat-box-icon" style="background: #fdf2f8; color: #db2777;"><i class="fa-solid fa-shield-cat"></i></div>
+      </div>
+      <div class="stat-box-value fs-4" style="color: #db2777;">1090</div>
+      <small class="text-muted">Women Safety</small>
+    </a>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <a href="tel:1930" class="stat-box d-block text-decoration-none">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label">Cyber Crime</span>
+        <div class="stat-box-icon" style="background: var(--primary-subtle); color: var(--primary);"><i class="fa-solid fa-laptop-code"></i></div>
+      </div>
+      <div class="stat-box-value text-primary fs-4">1930</div>
+      <small class="text-muted">Financial Fraud</small>
+    </a>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <a href="tel:108" class="stat-box d-block text-decoration-none">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label">Ambulance</span>
+        <div class="stat-box-icon" style="background: var(--success-subtle); color: var(--success);"><i class="fa-solid fa-truck-medical"></i></div>
+      </div>
+      <div class="stat-box-value text-success fs-4">108</div>
+      <small class="text-muted">Medical Emergency</small>
+    </a>
+  </div>
+</div>
+
+<!-- ALERTS LIST -->
+<div class="card-custom">
+  <div class="card-custom-header bg-light">
+    <h6 class="card-custom-title">
+      <i class="fa-solid fa-tower-broadcast text-danger"></i> Active Security Advisories
+    </h6>
+    <span class="badge bg-secondary">{{ alerts|length }} Total</span>
+  </div>
+  <div class="card-custom-body d-flex flex-column gap-3">
+    {% for alert in alerts %}
+    <div class="p-3 rounded border {% if alert.severity == 'danger' or alert.severity == 'critical' %}bg-danger-subtle border-danger{% elif alert.severity == 'warning' %}bg-warning-subtle border-warning{% else %}bg-light{% endif %}">
+      
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-1 mb-2">
+        <div class="d-flex align-items-center gap-2">
+          {% if alert.severity == 'danger' or alert.severity == 'critical' %}
+          <span class="badge bg-danger">Critical</span>
+          {% elif alert.severity == 'warning' %}
+          <span class="badge bg-warning text-dark">Warning</span>
+          {% else %}
+          <span class="badge bg-primary">Notice</span>
+          {% endif %}
+          <h6 class="fw-bold text-dark mb-0">{{ alert.title }}</h6>
+        </div>
+        <small class="text-muted">{{ alert.created_at|date:"d M Y, h:i A" }}</small>
+      </div>
+
+      <p class="text-secondary small mb-2" style="line-height: 1.6;">
+        {{ alert.message }}
+      </p>
+
+      {% if alert.location_name %}
+      <div class="small text-muted pt-1 border-top border-secondary border-opacity-10">
+        <i class="fa-solid fa-location-dot text-danger me-1"></i> Target Sector: <strong>{{ alert.location_name }}</strong>
+      </div>
+      {% endif %}
+
+    </div>
+    {% empty %}
+    <div class="text-center py-4 text-muted">
+      <i class="fa-solid fa-shield-check fs-2 text-success opacity-50 mb-2 d-block"></i>
+      No active security alerts. Normal conditions reported across all sectors.
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- NEW ALERT MODAL (FOR POLICE / STAFF) -->
+{% if user.is_staff and form %}
+<div class="modal fade" id="newAlertModal" tabindex="-1" aria-labelledby="newAlertModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-3 border-0 shadow">
+      <div class="modal-header bg-dark text-white py-2">
+        <h6 class="modal-title fw-bold" id="newAlertModalLabel">
+          <i class="fa-solid fa-bullhorn text-danger me-1"></i> Issue Safety Advisory
+        </h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST">
+        {% csrf_token %}
+        <div class="modal-body p-3 d-flex flex-column gap-2">
+          {% for field in form %}
+          <div>
+            <label class="form-label small fw-bold text-muted mb-1">{{ field.label }}</label>
+            {{ field }}
+          </div>
+          {% endfor %}
+        </div>
+        <div class="modal-footer bg-light p-2">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-danger">Post Broadcast</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% block title %}Admin Panel & Command Hub – CDAVP Portal{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HERO -->
+<div class="page-hero d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+  <div>
+    <div class="hero-tag"><i class="fa-solid fa-user-shield"></i> Administration</div>
+    <h1 class="hero-title">Police Admin & Command Center</h1>
+    <p class="hero-desc">
+      Manage citizen complaint verifications, assign investigation statuses, trigger AI re-training, and supervise user accounts.
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'admin_retrain_ml' %}" class="btn-success-custom" onclick="return confirm('Re-train ML models now?')">
+      <i class="fa-solid fa-brain"></i> Re-Train Models
+    </a>
+    <a href="{% url 'download_bulletin_pdf' %}" class="btn-danger-custom">
+      <i class="fa-solid fa-file-pdf"></i> District Bulletin
+    </a>
+    <a href="{% url 'csv_upload' %}" class="btn-primary-custom">
+      <i class="fa-solid fa-file-csv"></i> Bulk CSV Upload
+    </a>
+  </div>
+</div>
+
+<!-- STAT TILES ROW -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-box">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label text-danger">Pending Review</span>
+        <div class="stat-box-icon" style="background: var(--danger-subtle); color: var(--danger);"><i class="fa-solid fa-hourglass-half"></i></div>
+      </div>
+      <div class="stat-box-value text-danger">{{ pending_count }}</div>
+      <small class="text-muted">Awaiting decision</small>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="stat-box">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label text-warning">Investigating</span>
+        <div class="stat-box-icon" style="background: var(--warning-subtle); color: var(--warning);"><i class="fa-solid fa-magnifying-glass"></i></div>
+      </div>
+      <div class="stat-box-value text-warning">{{ investigating_count }}</div>
+      <small class="text-muted">Field inquiry active</small>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="stat-box">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label text-primary">Approved Cases</span>
+        <div class="stat-box-icon" style="background: var(--primary-subtle); color: var(--primary);"><i class="fa-solid fa-folder-open"></i></div>
+      </div>
+      <div class="stat-box-value text-primary">{{ approved_count }}</div>
+      <small class="text-muted">Verified FIRs</small>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="stat-box">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label text-success">Total Users</span>
+        <div class="stat-box-icon" style="background: var(--success-subtle); color: var(--success);"><i class="fa-solid fa-users"></i></div>
+      </div>
+      <div class="stat-box-value text-success">{{ total_users }}</div>
+      <small class="text-muted">Citizens & Staff</small>
+    </div>
+  </div>
+</div>
+
+<!-- PENDING COMPLAINTS TABLE -->
+<div class="card-custom mb-4">
+  <div class="card-custom-header bg-light">
+    <h6 class="card-custom-title">
+      <i class="fa-solid fa-inbox text-danger"></i> Pending Verification Queue
+    </h6>
+    <span class="badge bg-danger">{{ pending_complaints|length }} Pending</span>
+  </div>
+  <div class="card-custom-body p-0">
+    <div class="table-responsive">
+      <table class="table-custom">
+        <thead>
+          <tr>
+            <th>FIR Token</th>
+            <th>Category</th>
+            <th>Location</th>
+            <th>Reporter</th>
+            <th>Date Lodged</th>
+            <th class="text-end">1-Click Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in pending_complaints %}
+          <tr>
+            <td class="fw-bold">
+              <a href="{% url 'crime_detail' p.pk %}">{{ p.fir_number }}</a>
+            </td>
+            <td><span class="badge bg-light text-dark border">{{ p.get_crime_type_display }}</span></td>
+            <td>{{ p.location_name|default:"Khargone District" }}</td>
+            <td>{{ p.reported_by.username|default:"Anonymous" }}</td>
+            <td class="text-muted small">{{ p.created_at|date:"d M, H:i" }}</td>
+            <td class="text-end">
+              <div class="d-inline-flex gap-1">
+                <a href="{% url 'admin_update_status' p.pk 'approved' %}" class="btn btn-sm btn-success py-1 px-2" title="Approve & Verify">Approve</a>
+                <a href="{% url 'admin_update_status' p.pk 'investigating' %}" class="btn btn-sm btn-primary py-1 px-2" title="Start Investigation">Investigate</a>
+                <a href="{% url 'admin_update_status' p.pk 'rejected' %}" class="btn btn-sm btn-outline-danger py-1 px-2" onclick="return confirm('Reject this report?')" title="Reject">Reject</a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">
+              <i class="fa-solid fa-clipboard-check fs-2 text-success opacity-50 mb-2 d-block"></i>
+              No pending complaints in the verification queue.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTERED USERS DIRECTORY -->
+<div class="card-custom">
+  <div class="card-custom-header bg-light">
+    <h6 class="card-custom-title">
+      <i class="fa-solid fa-users text-primary"></i> Registered Users Directory
+    </h6>
+    <span class="badge bg-secondary">{{ total_users }} Users</span>
+  </div>
+  <div class="card-custom-body p-0">
+    <div class="table-responsive">
+      <table class="table-custom">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Date Joined</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users|slice:":10" %}
+          <tr>
+            <td class="fw-semibold text-dark">{{ u.username }}</td>
+            <td>{{ u.get_full_name|default:"—" }}</td>
+            <td class="text-muted small">{{ u.email|default:"—" }}</td>
+            <td>
+              {% if u.is_superuser %}
+              <span class="badge bg-danger">Super Admin</span>
+              {% elif u.is_staff %}
+              <span class="badge bg-primary">Police Staff</span>
+              {% else %}
+              <span class="badge bg-secondary">Citizen</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">{{ u.date_joined|date:"d M Y" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

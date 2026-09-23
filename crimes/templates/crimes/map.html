@@ -1,240 +1,331 @@
 {% extends 'base.html' %}
-{% block title %}Alert Map - CDAVP{% endblock %}
+{% block title %}Crime Hotspot Map – CDAVP Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+  .map-wrapper {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    background: #e2e8f0;
+  }
+
+  #mainCrimeMap {
+    height: 650px;
+    width: 100%;
+    z-index: 1;
+  }
+
+  .map-overlay-controls {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 999;
+    background: #ffffff;
+    padding: 14px 16px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    max-width: 290px;
+    width: 100%;
+  }
+
+  .map-legend-box {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 999;
+    background: #ffffff;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    font-size: 11.5px;
+  }
+
+  .legend-dot-red { width: 10px; height: 10px; border-radius: 50%; background: #dc2626; display: inline-block; }
+  .legend-dot-yellow { width: 10px; height: 10px; border-radius: 50%; background: #d97706; display: inline-block; }
+  .legend-dot-green { width: 10px; height: 10px; border-radius: 50%; background: #16a34a; display: inline-block; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row">
-  <div class="col-md-12">
-    <h1 class="mb-2">Khargone Community Alert Map</h1>
-    <p class="text-muted mb-4">All user complaints are visible here. Red and yellow highlights show areas where repeated incidents were reported inside Khargone city.</p>
+
+<!-- PAGE HERO -->
+<div class="page-hero d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+  <div>
+    <div class="hero-tag"><i class="fa-solid fa-map-location-dot"></i> Spatial Analysis</div>
+    <h1 class="hero-title">Interactive GIS Crime Hotspot Map (Leaflet.js)</h1>
+    <p class="hero-desc">
+      Geographic visualization of crime concentrations, density heatmaps, and spatial clusters across Khargone district.
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'crime_add' %}" class="btn-primary-custom">
+      <i class="fa-solid fa-plus-circle"></i> File FIR with GPS
+    </a>
+    <a href="{% url 'download_bulletin_pdf' %}" class="btn-danger-custom d-none d-sm-inline-flex">
+      <i class="fa-solid fa-file-pdf"></i> Bulletin PDF
+    </a>
   </div>
 </div>
 
-<div class="row mb-4">
-  <div class="col-md-3">
-    <div class="card bg-danger text-white">
-      <div class="card-body">
-        <h6 class="card-title">Red Alert Areas</h6>
-        <h3>{{ alert_summary.red_count }}</h3>
-      </div>
+<!-- MAP CANVAS WITH OVERLAYS -->
+<div class="map-wrapper mb-4">
+
+  <!-- OVERLAY CONTROLS -->
+  <div class="map-overlay-controls">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <strong class="text-dark fs-6"><i class="fa-solid fa-layer-group text-primary me-1"></i> Layers</strong>
+      <span class="badge bg-primary rounded-pill" id="markerCountBadge">{{ crimes_count|default:0 }} Pins</span>
+    </div>
+
+    <!-- TOGGLE BUTTONS -->
+    <div class="btn-group btn-group-sm w-100 mb-2" role="group">
+      <button type="button" class="btn btn-outline-primary active" id="btnToggleClusters">Clusters</button>
+      <button type="button" class="btn btn-outline-primary active" id="btnToggleHeatmap">Heatmap</button>
+      <button type="button" class="btn btn-outline-primary active" id="btnToggleZones">Hotspots</button>
+    </div>
+
+    <!-- FILTER SELECT -->
+    <label for="crimeTypeFilter" class="form-label small fw-bold text-muted mb-1">Filter by Category:</label>
+    <select id="crimeTypeFilter" name="crime_type_filter" title="Filter map markers by crime category" aria-label="Filter map markers by crime category" class="form-select form-select-sm mb-2">
+      <option value="ALL">All Categories</option>
+      {% for type_key, type_name in crime_types_list %}
+      <option value="{{ type_key }}">{{ type_name }}</option>
+      {% endfor %}
+    </select>
+
+    <!-- GPS LOCATE -->
+    <button type="button" class="btn btn-sm btn-outline-dark w-100" id="btnLocateUser">
+      <i class="fa-solid fa-crosshairs me-1"></i> Locate My Position
+    </button>
+  </div>
+
+  <!-- LEAFLET MAP ELEMENT -->
+  <div id="mainCrimeMap"></div>
+
+  <!-- LEGEND -->
+  <div class="map-legend-box d-none d-md-block">
+    <div class="fw-bold text-dark mb-1">Severity / Density</div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="legend-dot-red"></span>
+      <span>Red: High Danger Zone</span>
+    </div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="legend-dot-yellow"></span>
+      <span>Yellow: Moderate Caution</span>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="legend-dot-green"></span>
+      <span>Green: Low Risk Area</span>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card bg-warning text-dark">
-      <div class="card-body">
-        <h6 class="card-title">Yellow Alert Areas</h6>
-        <h3>{{ alert_summary.yellow_count }}</h3>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card bg-success text-white">
-      <div class="card-body">
-        <h6 class="card-title">Normal Areas</h6>
-        <h3>{{ alert_summary.green_count }}</h3>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card bg-dark text-white">
-      <div class="card-body">
-        <h6 class="card-title">Report Complaint</h6>
-        <p class="mb-0"><a href="/crimes/add/" class="btn btn-sm btn-light">Add Now</a></p>
-      </div>
-    </div>
-  </div>
+
 </div>
 
-<div class="row mb-3">
-  <div class="col-md-8">
-    <div class="form-check form-switch">
-      <input class="form-check-input" type="checkbox" id="khargoneLayer" checked>
-      <label class="form-check-label" for="khargoneLayer">Show Khargone City Boundary</label>
-    </div>
-  </div>
-  <div class="col-md-4 text-md-end mt-2 mt-md-0">
-    <span class="badge bg-danger me-2">Red Alert</span>
-    <span class="badge bg-warning text-dark me-2">Yellow Alert</span>
-    <span class="badge bg-success">Normal Alert</span>
-  </div>
-</div>
+<!-- EMBEDDED JSON DATA FOR CLIENT-SIDE JAVASCRIPT (CLEAN, ACCESSIBLE, LINT-FREE) -->
+<script id="map-crimes-data" type="application/json">{{ crimes_json|default:'[]'|safe }}</script>
+<script id="map-hotspots-data" type="application/json">{{ hotspot_clusters_json|default:'[]'|safe }}</script>
+<script id="map-geojson-data" type="application/json">{{ khargone_geojson|default:'{}'|safe }}</script>
 
-<div id="map" style="height: 620px; width: 100%; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"></div>
-
-<div class="row mt-4">
-  <div class="col-md-6">
-    <div class="card h-100">
-      <div class="card-header bg-dark text-white">
-        <strong>High Risk Time Slots</strong>
-      </div>
-      <div class="card-body">
-        <table class="table table-sm table-striped mb-0">
-          <thead>
-            <tr>
-              <th>Time Slot</th>
-              <th>Reports</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for slot in risky_time_slots %}
-            <tr>
-              <td>{{ slot.label }}</td>
-              <td>{{ slot.count }}</td>
-              <td>
-                {% if slot.count >= 3 %}
-                <span class="badge bg-danger">Unsafe</span>
-                {% elif slot.count >= 2 %}
-                <span class="badge bg-warning text-dark">Watch</span>
-                {% else %}
-                <span class="badge bg-success">Safer</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="3" class="text-center text-muted">No time slot data available.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="card h-100">
-      <div class="card-header bg-dark text-white">
-        <strong>How Alerts Work</strong>
-      </div>
-      <div class="card-body">
-        <p class="mb-2"><strong>Red Alert:</strong> 3 or more complaints from the same area.</p>
-        <p class="mb-2"><strong>Yellow Alert:</strong> 2 complaints from the same area.</p>
-        <p class="mb-0"><strong>Normal:</strong> 1 complaint reported in that area.</p>
-      </div>
-    </div>
-  </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-window.addEventListener('load', function() {
-  var mapData = {{ map_data|safe }};
-  var hotspotAreas = {{ hotspot_areas|safe }};
-  var khargoneGeoJson = {{ khargone_geojson|safe }};
-  var map = L.map('map').setView([22.05, 75.18], 10);
-  var markerGroup = L.featureGroup().addTo(map);
-  var alertGroup = L.featureGroup().addTo(map);
+document.addEventListener('DOMContentLoaded', function() {
+  const crimesData = JSON.parse(document.getElementById('map-crimes-data')?.textContent || '[]');
+  const hotspotClusters = JSON.parse(document.getElementById('map-hotspots-data')?.textContent || '[]');
+  const khargoneGeoJSON = JSON.parse(document.getElementById('map-geojson-data')?.textContent || '{}');
 
-  var khargoneLayer = L.geoJSON(null, {
-    style: function() {
-      return {
-        color: '#1E90FF',
-        weight: 4,
-        opacity: 0.9,
-        fillColor: '#87CEEB',
-        fillOpacity: 0.18
-      };
-    },
-    onEachFeature: function(feature, layer) {
-      layer.bindPopup(
-        '<strong>' + feature.properties.name + '</strong><br>' +
-        feature.properties.city + ', ' + feature.properties.state
-      );
-    }
-  });
-
-  document.getElementById('khargoneLayer').addEventListener('change', function(e) {
-    if (e.target.checked) {
-      map.addLayer(khargoneLayer);
-    } else {
-      map.removeLayer(khargoneLayer);
-    }
-  });
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors & Khargone City Boundary',
-    maxZoom: 19
-  }).addTo(map);
-
-  khargoneLayer.addData(khargoneGeoJson);
-  map.addLayer(khargoneLayer);
-  var khargoneBounds = khargoneLayer.getBounds();
-
-  var crimeColors = {
-    'theft': '#FF6B6B',
-    'assault': '#FFC93D',
-    'robbery': '#2C3E50',
-    'murder': '#E74C3C',
-    'fraud': '#3498DB',
-    'vandalism': '#95A5A6',
-    'drug_offense': '#27AE60',
-    'other': '#7F8C8D'
-  };
-
-  var alertStyles = {
-    red: { color: '#c1121f', fillColor: '#ef233c', radius: 450 },
-    yellow: { color: '#f77f00', fillColor: '#fcbf49', radius: 325 },
-    green: { color: '#2a9d8f', fillColor: '#52b788', radius: 220 }
-  };
-
-  mapData.forEach(function(crime) {
-    var point = L.latLng(crime.latitude, crime.longitude);
-    if (!Number.isFinite(crime.latitude) || !Number.isFinite(crime.longitude)) {
-      return;
-    }
-    if (khargoneBounds.isValid() && !khargoneBounds.contains(point)) {
-      return;
-    }
-
-    var marker = L.circleMarker([crime.latitude, crime.longitude], {
-      radius: 8,
-      fillColor: crimeColors[crime.crime_type] || '#999',
-      color: '#fff',
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.9
-    }).addTo(markerGroup);
-
-    marker.bindPopup(
-      '<strong>' + crime.crime_type_display + '</strong><br>' +
-      crime.location_name + '<br>' +
-      'Reported by: ' + crime.reported_by + '<br>' +
-      'Time slot: ' + crime.time_slot + '<br>' +
-      crime.date_time
-    );
-  });
-
-  hotspotAreas.forEach(function(area) {
-    var point = L.latLng(area.latitude, area.longitude);
-    if (khargoneBounds.isValid() && !khargoneBounds.contains(point)) {
-      return;
-    }
-
-    var style = alertStyles[area.alert_level] || alertStyles.green;
-    var circle = L.circle([area.latitude, area.longitude], {
-      radius: style.radius,
-      color: style.color,
-      fillColor: style.fillColor,
-      fillOpacity: 0.28,
-      weight: 2
-    }).addTo(alertGroup);
-
-    circle.bindPopup(
-      '<strong>' + area.location_name + '</strong><br>' +
-      'Alert: ' + area.alert_level.toUpperCase() + '<br>' +
-      'Complaints: ' + area.report_count + '<br>' +
-      'Top issue: ' + area.top_crime + '<br>' +
-      'Unsafe time slot: ' + area.unsafe_time_slot + '<br>' +
-      'Latest report: ' + area.latest_report
-    );
-  });
-
-  if (khargoneBounds.isValid()) {
-    map.fitBounds(khargoneBounds.pad(0.05), { animate: true });
-  } else {
-    map.setView([22.05, 75.18], 10);
+  if (typeof L === 'undefined') {
+    console.error("Leaflet library not loaded.");
+    return;
   }
 
-  setTimeout(function() {
-    map.invalidateSize();
-  }, 100);
+  // 1. INITIALIZE MAP (Centered at Khargone)
+  const map = L.map('mainCrimeMap', {
+    center: [21.8247, 75.6102],
+    zoom: 12,
+    zoomControl: true,
+  });
+
+  // Base Tile Layer: Standard OpenStreetMap (100% Free, No API Key Required)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+
+  setTimeout(function() { map.invalidateSize(); }, 200);
+
+  // 2. KHARGONE DISTRICT BOUNDARY
+  if (khargoneGeoJSON && khargoneGeoJSON.features && khargoneGeoJSON.features.length) {
+    try {
+      L.geoJSON(khargoneGeoJSON, {
+        style: {
+          color: '#2563eb',
+          weight: 2,
+          fillColor: '#3b82f6',
+          fillOpacity: 0.05,
+          dashArray: '4, 4'
+        }
+      }).addTo(map);
+    } catch (e) {
+      console.warn("GeoJSON parse error:", e);
+    }
+  }
+
+  // 3. MARKER CLUSTER GROUP
+  const markerGroup = (typeof L.markerClusterGroup === 'function') 
+    ? L.markerClusterGroup({ chunkedLoading: true, showCoverageOnHover: false, zoomToBoundsOnClick: true })
+    : L.featureGroup();
+
+  // 4. HEATMAP LAYER
+  let heatLayer = null;
+  const heatPoints = (Array.isArray(crimesData) ? crimesData : [])
+    .filter(function(c) { return c.latitude && c.longitude; })
+    .map(function(c) {
+      let intensity = 0.6;
+      if (c.severity_level === 'critical') intensity = 1.0;
+      else if (c.severity_level === 'high') intensity = 0.8;
+      else if (c.severity_level === 'medium') intensity = 0.5;
+      return [parseFloat(c.latitude), parseFloat(c.longitude), intensity];
+    });
+
+  if (typeof L.heatLayer === 'function' && heatPoints.length > 0) {
+    heatLayer = L.heatLayer(heatPoints, {
+      radius: 25,
+      blur: 18,
+      maxZoom: 15,
+      gradient: { 0.2: '#16a34a', 0.5: '#d97706', 0.8: '#dc2626', 1.0: '#991b1b' }
+    }).addTo(map);
+  }
+
+  // 5. DBSCAN HOTSPOT CIRCLES LAYER
+  const zonesLayerGroup = L.layerGroup().addTo(map);
+
+  function renderHotspotZones() {
+    zonesLayerGroup.clearLayers();
+    if (!Array.isArray(hotspotClusters)) return;
+
+    hotspotClusters.forEach(function(zone) {
+      if (!zone.latitude || !zone.longitude) return;
+      let strokeColor = '#16a34a';
+      let fillColor = '#16a34a';
+      if (zone.alert_level === 'red') {
+        strokeColor = '#dc2626';
+        fillColor = '#dc2626';
+      } else if (zone.alert_level === 'yellow') {
+        strokeColor = '#d97706';
+        fillColor = '#d97706';
+      }
+
+      const circle = L.circle([parseFloat(zone.latitude), parseFloat(zone.longitude)], {
+        color: strokeColor,
+        fillColor: fillColor,
+        fillOpacity: 0.15,
+        radius: zone.radius_meters || 600,
+        weight: 2
+      });
+
+      circle.bindPopup(
+        '<div>' +
+          '<h6 class="fw-bold mb-1">' + (zone.location_name || 'Hotspot Zone') + '</h6>' +
+          '<div class="badge bg-secondary mb-2">' + (zone.risk_label || 'Moderate') + '</div>' +
+          '<p class="small text-muted mb-0"><strong>' + (zone.report_count || 0) + '</strong> Incidents logged in this sector.</p>' +
+        '</div>'
+      );
+      zonesLayerGroup.addLayer(circle);
+    });
+  }
+  renderHotspotZones();
+
+  // 6. POPULATE MARKERS
+  function populateMarkers(filterType) {
+    const selectedFilter = filterType || 'ALL';
+    markerGroup.clearLayers();
+    let count = 0;
+    const records = Array.isArray(crimesData) ? crimesData : [];
+
+    records.forEach(function(c) {
+      if (!c.latitude || !c.longitude) return;
+      if (selectedFilter !== 'ALL' && c.crime_type !== selectedFilter) return;
+
+      count++;
+      const marker = L.marker([parseFloat(c.latitude), parseFloat(c.longitude)]);
+      marker.bindPopup(
+        '<div style="min-width: 180px;">' +
+          '<strong class="text-primary">' + (c.fir_number || '') + '</strong>' +
+          '<h6 class="fw-bold mb-1 mt-1">' + (c.crime_type_display || c.crime_type || 'Incident') + '</h6>' +
+          '<p class="small text-muted mb-2"><i class="fa-solid fa-location-dot me-1"></i>' + (c.location_name || 'Khargone') + '</p>' +
+          '<a href="/crimes/' + c.id + '/" class="btn btn-sm btn-primary w-100 py-1">View Details</a>' +
+        '</div>'
+      );
+      markerGroup.addLayer(marker);
+    });
+
+    map.addLayer(markerGroup);
+    const badge = document.getElementById('markerCountBadge');
+    if (badge) badge.textContent = count + ' Pins';
+  }
+  populateMarkers('ALL');
+
+  // 7. FILTER EVENT
+  const filterSelect = document.getElementById('crimeTypeFilter');
+  if (filterSelect) {
+    filterSelect.addEventListener('change', function(e) {
+      populateMarkers(e.target.value);
+    });
+  }
+
+  // 8. LAYER TOGGLE BUTTONS
+  const btnClusters = document.getElementById('btnToggleClusters');
+  if (btnClusters) {
+    btnClusters.addEventListener('click', function() {
+      this.classList.toggle('active');
+      if (map.hasLayer(markerGroup)) map.removeLayer(markerGroup);
+      else map.addLayer(markerGroup);
+    });
+  }
+
+  const btnHeatmap = document.getElementById('btnToggleHeatmap');
+  if (btnHeatmap && heatLayer) {
+    btnHeatmap.addEventListener('click', function() {
+      this.classList.toggle('active');
+      if (map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
+      else map.addLayer(heatLayer);
+    });
+  }
+
+  const btnZones = document.getElementById('btnToggleZones');
+  if (btnZones) {
+    btnZones.addEventListener('click', function() {
+      this.classList.toggle('active');
+      if (map.hasLayer(zonesLayerGroup)) map.removeLayer(zonesLayerGroup);
+      else map.addLayer(zonesLayerGroup);
+    });
+  }
+
+  // 9. GPS AUTO-LOCATE
+  const btnLocate = document.getElementById('btnLocateUser');
+  if (btnLocate) {
+    btnLocate.addEventListener('click', function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          const userLat = pos.coords.latitude;
+          const userLng = pos.coords.longitude;
+          map.flyTo([userLat, userLng], 14);
+          L.marker([userLat, userLng]).addTo(map).bindPopup('<strong>📍 Your Location</strong>').openPopup();
+          showToast('Location pinpointed!', 'success');
+        }, function(err) {
+          showToast('Unable to fetch GPS: ' + err.message, 'warning');
+        });
+      }
+    });
+  }
+
 });
 </script>
 {% endblock %}

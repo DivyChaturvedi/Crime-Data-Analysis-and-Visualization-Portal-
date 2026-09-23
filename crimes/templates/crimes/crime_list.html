@@ -1,105 +1,176 @@
 {% extends 'base.html' %}
-{% block title %}Crime Records - CDAVP{% endblock %}
+{% block title %}Crime Records & Multi-Filter Search – CDAVP{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-  <div class="col-md-12">
-    <h1 class="mb-2">Community Crime Records</h1>
-    <p class="text-muted">Every complaint is visible to all logged-in users. Only the original reporter can edit or delete their own complaint.</p>
+
+<!-- HERO BANNER -->
+<div class="page-hero d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+  <div>
+    <div class="hero-tag"><i class="fa-solid fa-database"></i> Crime Data Registry</div>
+    <h1 class="hero-title">Incident Records & Case Management</h1>
+    <p class="hero-desc">
+      Search, filter by crime type, date range, and location. Export filtered intelligence to CSV or printable PDF bulletins.
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'csv_export' %}" class="btn-success-custom">
+      <i class="fa-solid fa-file-excel"></i> Export CSV
+    </a>
+    <a href="{% url 'download_bulletin_pdf' %}" class="btn-danger-custom d-none d-sm-inline-flex">
+      <i class="fa-solid fa-file-pdf"></i> Bulletin PDF
+    </a>
+    <a href="{% url 'crime_add' %}" class="btn-primary-custom">
+      <i class="fa-solid fa-plus-circle"></i> File Incident
+    </a>
   </div>
 </div>
 
-<div class="row mb-4">
-  <div class="col-md-12">
-    <div class="card">
-      <div class="card-header bg-dark text-white">
-        <strong>Filter Records</strong>
+<!-- DYNAMIC MULTI-PARAMETER FILTER CARD -->
+<div class="card-custom mb-4">
+  <div class="card-custom-header bg-light">
+    <h6 class="card-custom-title">
+      <i class="fa-solid fa-filter text-primary"></i> Multi-Parameter Filter & Search
+    </h6>
+    <span class="badge bg-secondary">{{ total_count }} Matches</span>
+  </div>
+  <div class="card-custom-body p-3">
+    <form method="GET" class="row g-2">
+      
+      <!-- SEARCH KEYWORD -->
+      <div class="col-md-4">
+        <label class="form-label small fw-bold text-muted mb-1">Search Keywords / FIR #</label>
+        {{ form.search }}
       </div>
-      <div class="card-body">
-        <form method="GET" class="row g-3">
-          <div class="col-md-3">
-            <label class="form-label">Crime Type</label>
-            {{ form.crime_type }}
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">From Date</label>
-            {{ form.date_from }}
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">To Date</label>
-            {{ form.date_to }}
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Search Location</label>
-            {{ form.search }}
-          </div>
-          <div class="col-md-12">
-            <button type="submit" class="btn btn-primary">Filter</button>
-            <a href="/crimes/" class="btn btn-secondary">Clear</a>
-          </div>
-        </form>
+
+      <!-- CRIME TYPE -->
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-bold text-muted mb-1">Crime Type</label>
+        {{ form.crime_type }}
       </div>
-    </div>
+
+      <!-- SEVERITY LEVEL -->
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-bold text-muted mb-1">Severity</label>
+        {{ form.severity }}
+      </div>
+
+      <!-- STATUS -->
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-bold text-muted mb-1">Status</label>
+        {{ form.status }}
+      </div>
+
+      <!-- DATE FROM -->
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-bold text-muted mb-1">Date From</label>
+        {{ form.date_from }}
+      </div>
+
+      <!-- DATE TO -->
+      <div class="col-6 col-md-2">
+        <label class="form-label small fw-bold text-muted mb-1">Date To</label>
+        {{ form.date_to }}
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="col-12 col-md-4 d-flex align-items-end gap-2 mt-2">
+        <button type="submit" class="btn-primary-custom flex-grow-1 justify-content-center">
+          <i class="fa-solid fa-magnifying-glass me-1"></i> Apply Filters
+        </button>
+        <a href="{% url 'crime_list' %}" class="btn-secondary-custom px-3" title="Reset All Filters">
+          <i class="fa-solid fa-rotate-left"></i> Reset
+        </a>
+      </div>
+
+    </form>
   </div>
 </div>
 
-<div class="row">
-  <div class="col-md-12">
-    <div class="card">
-      <div class="card-header bg-dark text-white">
-        <strong>Shared Records List</strong>
-      </div>
-      <div class="card-body">
-        <table class="table table-hover table-striped">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Crime Type</th>
-              <th>Location</th>
-              <th>Date & Time</th>
-              <th>Reported By</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for crime in crimes %}
-            <tr>
-              <td>{{ crime.id }}</td>
-              <td><span class="badge bg-danger">{{ crime.get_crime_type_display }}</span></td>
-              <td>{{ crime.location_name }}</td>
-              <td>{{ crime.date_time|date:"d M Y, h:i A" }}</td>
-              <td>{{ crime.reported_by.username|default:"N/A" }}</td>
-              <td>
-                {% if crime.reported_by == user %}
-                <a href="/crimes/edit/{{ crime.id }}/" class="btn btn-sm btn-warning">Edit</a>
-                <a href="/crimes/delete/{{ crime.id }}/" class="btn btn-sm btn-danger">Delete</a>
-                {% else %}
-                <span class="text-muted small">View only</span>
+<!-- RECORDS TABLE -->
+<div class="card-custom">
+  <div class="card-custom-header">
+    <h6 class="card-custom-title">
+      <i class="fa-solid fa-list text-primary"></i> Incident Records Registry
+    </h6>
+    <span class="text-muted small">Showing {{ crimes|length }} of {{ total_count }} total</span>
+  </div>
+  <div class="card-custom-body p-0">
+    <div class="table-responsive">
+      <table class="table-custom">
+        <thead>
+          <tr>
+            <th>FIR Number</th>
+            <th>Crime Category</th>
+            <th>Location & PS</th>
+            <th>Severity</th>
+            <th>Status</th>
+            <th>Incident Date</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for crime in crimes %}
+          <tr>
+            <td class="fw-bold">
+              <a href="{% url 'crime_detail' crime.pk %}">{{ crime.fir_number }}</a>
+            </td>
+            <td><span class="badge bg-light text-dark border">{{ crime.get_crime_type_display }}</span></td>
+            <td>
+              <div class="fw-semibold text-dark">{{ crime.location_name|default:"Khargone District" }}</div>
+              <small class="text-muted">{{ crime.police_station|default:"Kotwali PS" }}</small>
+            </td>
+            <td><span class="badge bg-light text-dark border text-capitalize">{{ crime.severity_level }}</span></td>
+            <td>
+              <span class="badge-status badge-status-{{ crime.status }}">
+                {{ crime.get_status_display }}
+              </span>
+            </td>
+            <td class="text-muted small">
+              {{ crime.incident_datetime|default:crime.created_at|date:"d M Y, h:i A" }}
+            </td>
+            <td class="text-end">
+              <div class="d-inline-flex gap-1">
+                <a href="{% url 'crime_detail' crime.pk %}" class="btn btn-sm btn-outline-primary py-1 px-2" title="View Case">View</a>
+                <a href="{% url 'download_fir_pdf' crime.pk %}" class="btn btn-sm btn-outline-danger py-1 px-2" title="PDF Slip">PDF</a>
+                {% if user.is_staff or crime.reported_by == user %}
+                <a href="{% url 'crime_edit' crime.pk %}" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Edit">Edit</a>
                 {% endif %}
-              </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="6" class="text-center text-muted">No crime records found.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-5">
+              <i class="fa-solid fa-magnifying-glass fs-2 text-secondary opacity-50 mb-2 d-block"></i>
+              No records match your selected filter criteria.
+              <div class="mt-2">
+                <a href="{% url 'crime_list' %}" class="btn btn-sm btn-outline-primary">Reset Filters</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+
+    <!-- PAGINATION -->
+    {% if crimes.has_other_pages %}
+    <div class="p-3 d-flex justify-content-center border-top">
+      <nav aria-label="Page navigation">
+        <ul class="pagination pagination-sm mb-0 gap-1">
+          {% if crimes.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ crimes.previous_page_number }}">Previous</a></li>
+          {% endif %}
+          <li class="page-item active"><span class="page-link">{{ crimes.number }} of {{ crimes.paginator.num_pages }}</span></li>
+          {% if crimes.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ crimes.next_page_number }}">Next</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+
   </div>
 </div>
 
-{% if crimes.has_other_pages %}
-<nav aria-label="Page navigation" class="mt-4">
-  <ul class="pagination justify-content-center">
-    {% if crimes.has_previous %}
-    <li class="page-item"><a class="page-link" href="?page=1">First</a></li>
-    <li class="page-item"><a class="page-link" href="?page={{ crimes.previous_page_number }}">Previous</a></li>
-    {% endif %}
-    <li class="page-item active"><span class="page-link">{{ crimes.number }} / {{ crimes.paginator.num_pages }}</span></li>
-    {% if crimes.has_next %}
-    <li class="page-item"><a class="page-link" href="?page={{ crimes.next_page_number }}">Next</a></li>
-    <li class="page-item"><a class="page-link" href="?page={{ crimes.paginator.num_pages }}">Last</a></li>
-    {% endif %}
-  </ul>
-</nav>
-{% endif %}
 {% endblock %}

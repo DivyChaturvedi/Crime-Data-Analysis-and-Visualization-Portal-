@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% block title %}AI Predictive Analytics & Machine Learning – CDAVP{% endblock %}
+
+{% block content %}
+
+<!-- HERO BANNER -->
+<div class="page-hero d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+  <div>
+    <div class="hero-tag"><i class="fa-solid fa-brain"></i> Machine Learning Intelligence</div>
+    <h1 class="hero-title">Predictive Crime Risk Modeling (Scikit-Learn)</h1>
+    <p class="hero-desc">
+      NLP text classification, spatial DBSCAN density clustering, and Bayesian temporal-spatial risk scoring.
+    </p>
+  </div>
+  {% if user.is_staff %}
+  <div>
+    <a href="{% url 'admin_retrain_ml' %}" class="btn-success-custom" onclick="return confirm('Re-train machine learning prediction pipelines?')">
+      <i class="fa-solid fa-rotate"></i> Re-Train Models
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- SIMULATOR & PREDICTION OUTPUT -->
+<div class="row g-3 mb-4">
+  
+  <!-- LEFT: ML PREDICTION FORM -->
+  <div class="col-lg-6">
+    <div class="card-custom h-100">
+      <div class="card-custom-header bg-light">
+        <h6 class="card-custom-title">
+          <i class="fa-solid fa-flask text-primary"></i> Risk Simulation Sandbox
+        </h6>
+        <span class="badge bg-primary">Scikit-Learn</span>
+      </div>
+      <div class="card-custom-body">
+        <form method="POST">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-muted mb-1">{{ form.location_name.label }}</label>
+            {{ form.location_name }}
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-bold text-muted mb-1">{{ form.latitude.label }}</label>
+              {{ form.latitude }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-bold text-muted mb-1">{{ form.longitude.label }}</label>
+              {{ form.longitude }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-muted mb-1">{{ form.target_datetime.label }}</label>
+            {{ form.target_datetime }}
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label small fw-bold text-muted mb-1">{{ form.incident_description.label }}</label>
+            {{ form.incident_description }}
+            <small class="text-muted" style="font-size: 11px;">Optional: NLP pipeline will classify category & severity from text.</small>
+          </div>
+
+          <button type="submit" class="btn-primary-custom w-100 py-2 justify-content-center">
+            <i class="fa-solid fa-calculator me-1"></i> Compute Predictive Risk Score
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: INFERENCE OUTPUT -->
+  <div class="col-lg-6">
+    {% if prediction_result %}
+    <div class="card-custom h-100">
+      <div class="card-custom-header bg-light">
+        <h6 class="card-custom-title">
+          <i class="fa-solid fa-chart-simple text-primary"></i> Assessment Summary
+        </h6>
+        <span class="badge bg-{{ prediction_result.badge_class }}">{{ prediction_result.risk_label }}</span>
+      </div>
+      <div class="card-custom-body text-center p-4">
+
+        <div class="p-4 bg-light rounded-3 border mb-3">
+          <div class="small text-muted fw-bold text-uppercase">Computed Risk Score</div>
+          <div class="display-4 fw-bold text-{{ prediction_result.badge_class }} my-1">
+            {{ prediction_result.risk_score }}%
+          </div>
+          <div class="small text-muted">Target: <strong>{{ prediction_result.location_name }}</strong></div>
+        </div>
+
+        <div class="row g-2 text-start mb-3">
+          <div class="col-6">
+            <div class="p-2 bg-light rounded border">
+              <small class="text-muted d-block">Primary Threat Factor</small>
+              <strong class="text-dark">{{ prediction_result.predicted_primary_threat }}</strong>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-2 bg-light rounded border">
+              <small class="text-muted d-block">Nearby Density (3km)</small>
+              <strong class="text-dark">{{ prediction_result.nearby_incidents_3km }} Records</strong>
+            </div>
+          </div>
+        </div>
+
+        {% if nlp_result %}
+        <div class="p-3 bg-light rounded border text-start mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small fw-bold text-primary">NLP Text Classification:</span>
+            <span class="badge bg-secondary">{{ nlp_result.confidence|floatformat:2 }} Confidence</span>
+          </div>
+          <div class="fw-bold text-dark">{{ nlp_result.crime_type_display }} ({{ nlp_result.severity_display }})</div>
+        </div>
+        {% endif %}
+
+        <div class="text-start mt-3">
+          <label class="small fw-bold text-muted text-uppercase mb-2">Tactical Directives:</label>
+          <ul class="list-unstyled d-flex flex-column gap-2 mb-0">
+            {% for rec in prediction_result.recommendations %}
+            <li class="small d-flex align-items-center gap-2 p-2 bg-light rounded border">
+              <i class="fa-solid fa-shield-halved text-primary"></i>
+              <span>{{ rec }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+      </div>
+    </div>
+    {% else %}
+    <div class="card-custom h-100 d-flex flex-column align-items-center justify-content-center text-center p-5">
+      <div style="width: 64px; height: 64px; border-radius: var(--radius-md); background: var(--primary-subtle); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 16px;">
+        <i class="fa-solid fa-brain"></i>
+      </div>
+      <h5 class="fw-bold text-dark">AI Model Simulator Ready</h5>
+      <p class="text-muted small mb-0" style="max-width: 340px;">
+        Enter latitude, longitude, and incident narrative in the form to generate real-time risk predictions.
+      </p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- DBSCAN CLUSTERS TABLE -->
+<div class="card-custom">
+  <div class="card-custom-header">
+    <h6 class="card-custom-title">
+      <i class="fa-solid fa-chart-pie text-primary"></i> Identified Spatial Density Clusters (DBSCAN)
+    </h6>
+    <span class="badge bg-light text-dark border">{{ clusters|length }} Clusters</span>
+  </div>
+  <div class="card-custom-body p-0">
+    <div class="table-responsive">
+      <table class="table-custom">
+        <thead>
+          <tr>
+            <th>Cluster Sector</th>
+            <th>Coordinates</th>
+            <th>Radius</th>
+            <th>Incidents</th>
+            <th>Dominant Crime</th>
+            <th>Risk Tier</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in clusters %}
+          <tr>
+            <td class="fw-semibold text-dark">{{ c.location_name }}</td>
+            <td class="text-muted small font-monospace">{{ c.latitude|floatformat:4 }}, {{ c.longitude|floatformat:4 }}</td>
+            <td>{{ c.radius_meters|floatformat:0 }} m</td>
+            <td><span class="badge bg-light text-dark border">{{ c.report_count }} Records</span></td>
+            <td>{{ c.top_crime }}</td>
+            <td>
+              {% if c.alert_level == 'red' %}
+              <span class="badge bg-danger">High Danger</span>
+              {% elif c.alert_level == 'yellow' %}
+              <span class="badge bg-warning text-dark">Moderate</span>
+              {% else %}
+              <span class="badge bg-success">Safe Area</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">No density clusters identified.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

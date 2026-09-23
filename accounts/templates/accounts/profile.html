@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block title %}Citizen Profile – CDAVP Portal{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HERO -->
+<div class="page-hero d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+  <div>
+    <div class="hero-tag"><i class="fa-solid fa-id-card"></i> Citizen Profile</div>
+    <h1 class="hero-title">{{ user.get_full_name|default:user.username }}</h1>
+    <p class="hero-desc">{{ user.email|default:"No email registered" }} • Member since {{ user.date_joined|date:"M Y" }}</p>
+  </div>
+  <div>
+    <a href="{% url 'crime_add' %}" class="btn-primary-custom">
+      <i class="fa-solid fa-plus-circle"></i> File New Complaint
+    </a>
+  </div>
+</div>
+
+<!-- STAT TILES ROW -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-box">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label">Total FIRs</span>
+        <div class="stat-box-icon" style="background: var(--primary-subtle); color: var(--primary);"><i class="fa-solid fa-folder-open"></i></div>
+      </div>
+      <div class="stat-box-value">{{ total_reported }}</div>
+      <small class="text-muted">Registered in portal</small>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="stat-box">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label">Pending</span>
+        <div class="stat-box-icon" style="background: var(--warning-subtle); color: var(--warning);"><i class="fa-solid fa-hourglass-half"></i></div>
+      </div>
+      <div class="stat-box-value">{{ pending_count }}</div>
+      <small class="text-muted">Awaiting police review</small>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="stat-box">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label">Investigating</span>
+        <div class="stat-box-icon" style="background: var(--info-subtle); color: var(--info);"><i class="fa-solid fa-magnifying-glass"></i></div>
+      </div>
+      <div class="stat-box-value">{{ verified_count }}</div>
+      <small class="text-muted">Inquiry in progress</small>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="stat-box">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label">Resolved</span>
+        <div class="stat-box-icon" style="background: var(--success-subtle); color: var(--success);"><i class="fa-solid fa-circle-check"></i></div>
+      </div>
+      <div class="stat-box-value">{{ resolved_count }}</div>
+      <small class="text-muted">Closed cases</small>
+    </div>
+  </div>
+</div>
+
+<!-- MY COMPLAINTS TABLE -->
+<div class="card-custom">
+  <div class="card-custom-header">
+    <h5 class="card-custom-title">
+      <i class="fa-solid fa-list-check text-primary"></i> My Registered FIR Complaints
+    </h5>
+    <span class="badge bg-light text-dark border">{{ total_reported }} Total</span>
+  </div>
+  <div class="card-custom-body p-0">
+    <div class="table-responsive">
+      <table class="table-custom">
+        <thead>
+          <tr>
+            <th>FIR #</th>
+            <th>Category</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th>Date Registered</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for crime in my_crimes %}
+          <tr>
+            <td class="fw-bold">
+              <a href="{% url 'crime_detail' crime.pk %}">{{ crime.fir_number }}</a>
+            </td>
+            <td>{{ crime.get_crime_type_display }}</td>
+            <td>{{ crime.location_name|default:"Khargone District"|truncatechars:24 }}</td>
+            <td>
+              <span class="badge-status badge-status-{{ crime.status }}">
+                {{ crime.get_status_display }}
+              </span>
+            </td>
+            <td class="text-muted small">{{ crime.created_at|date:"d M Y, h:i A" }}</td>
+            <td class="text-end">
+              <a href="{% url 'crime_detail' crime.pk %}" class="btn btn-sm btn-outline-primary py-1 px-2">View</a>
+              <a href="{% url 'download_fir_pdf' crime.pk %}" class="btn btn-sm btn-outline-danger py-1 px-2">PDF</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-5">
+              <i class="fa-solid fa-folder-open fs-2 text-secondary opacity-50 mb-2 d-block"></i>
+              No FIR complaints submitted yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

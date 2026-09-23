@@ -1,41 +1,71 @@
 {% extends 'base.html' %}
-{% block title %}Upload CSV — CDAVP{% endblock %}
+{% block title %}Bulk CSV Data Upload – CDAVP Portal{% endblock %}
+
 {% block content %}
 
-<div class="row">
-  <div class="col-md-8 offset-md-2">
-    <div class="card">
-      <div class="card-header bg-dark text-white">
-        <strong>📤 Upload Crime Data (CSV)</strong>
-      </div>
-      <div class="card-body">
-        <div class="alert alert-info">
-          <strong>CSV Format:</strong>
-          <code>crime_type, date_time, location_name, latitude, longitude, description</code>
-          <br>
-          <small>date_time format: YYYY-MM-DD HH:MM:SS</small>
-        </div>
+<!-- HERO BANNER -->
+<div class="page-hero d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+  <div>
+    <div class="hero-tag"><i class="fa-solid fa-file-csv"></i> Batch Data Import</div>
+    <h1 class="hero-title">Bulk Crime Dataset Import (Pandas Engine)</h1>
+    <p class="hero-desc">
+      Import historical and departmental crime records in bulk via standard comma-separated CSV format.
+    </p>
+  </div>
+  <a href="{% url 'crime_list' %}" class="btn btn-outline-light">
+    <i class="fa-solid fa-arrow-left me-1"></i> Back to Records
+  </a>
+</div>
 
-        <form method="POST" enctype="multipart/form-data">
+<div class="row g-3 mb-4 justify-content-center">
+  <div class="col-lg-8">
+    <div class="card-custom mb-3">
+      <div class="card-custom-header bg-light">
+        <h6 class="card-custom-title">
+          <i class="fa-solid fa-cloud-arrow-up text-primary"></i> Upload Crime Records CSV File
+        </h6>
+      </div>
+      <div class="card-custom-body p-4">
+        
+        <form method="POST" enctype="multipart/form-data" class="d-flex flex-column gap-3">
           {% csrf_token %}
-          <div class="mb-3">
-            <label class="form-label">Select CSV File</label>
-            {{ form.csv_file }}
+
+          <div class="p-4 bg-light rounded border text-center">
+            <i class="fa-solid fa-file-csv fs-1 text-success mb-2"></i>
+            <h6 class="fw-bold text-dark mb-1">Select CSV Dataset File</h6>
+            <div class="my-3 col-md-8 mx-auto">
+              {{ form.csv_file }}
+            </div>
+            <small class="text-muted">Maximum file size: 25 MB (.csv only)</small>
           </div>
-          <button type="submit" class="btn btn-success">⬆️ Upload & Import</button>
+
+          <button type="submit" class="btn-primary-custom py-2 justify-content-center">
+            <i class="fa-solid fa-upload me-1"></i> Process & Import CSV Records with Pandas
+          </button>
         </form>
 
       </div>
     </div>
 
-    <div class="card mt-4">
-      <div class="card-header bg-secondary text-white">
-        <strong>📋 Sample CSV Row:</strong>
+    <!-- FORMAT GUIDE CARD -->
+    <div class="card-custom">
+      <div class="card-custom-header bg-light">
+        <h6 class="card-custom-title">
+          <i class="fa-solid fa-circle-info text-info"></i> Expected CSV Column Format Guide
+        </h6>
       </div>
-      <div class="card-body">
-        <code>theft,2024-03-15 14:30:00,MG Road Indore,22.7196,75.8577,Mobile snatched</code>
+      <div class="card-custom-body p-3">
+        <p class="small text-muted mb-2">Ensure your CSV file contains the following column headers:</p>
+        <pre class="bg-dark text-light p-3 rounded small mb-2"><code>crime_type,location_name,latitude,longitude,description,severity_level
+theft,MG Road Khargone,21.8247,75.6102,Mobile phone snatched near market,medium
+assault,Sarafa Bazaar,21.8280,75.6135,Fight reported outside shop,high
+robbery,Station Road,21.8310,75.6080,Armed robbery attempt at store,critical</code></pre>
+        <div class="small text-muted">
+          <strong>Supported Crime Types:</strong> <code>theft</code>, <code>assault</code>, <code>robbery</code>, <code>murder</code>, <code>fraud</code>, <code>vandalism</code>, <code>drug_offense</code>, <code>vehicle_theft</code>, <code>burglary</code>, <code>harassment</code>, <code>other</code>.
+        </div>
       </div>
     </div>
+
   </div>
 </div>
 

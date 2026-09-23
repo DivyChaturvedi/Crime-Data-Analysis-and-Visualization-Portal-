@@ -1,40 +1,82 @@
 {% extends 'base.html' %}
-{% block title %}Register — CDAVP{% endblock %}
+{% block title %}Citizen Registration (Email OTP) – CDAVP Portal{% endblock %}
+
 {% block content %}
-
-<div class="row">
-  <div class="col-md-6 offset-md-3">
-    <div class="card mt-5">
-      <div class="card-header bg-dark text-white text-center">
-        <h4 class="mb-0">✍️ Create Account</h4>
+<div class="row justify-content-center my-4">
+  <div class="col-lg-9 col-xl-8">
+    <div class="card-custom">
+      <div class="card-custom-header bg-light">
+        <h5 class="card-custom-title">
+          <i class="fa-solid fa-user-plus text-primary"></i> Citizen Account Registration
+        </h5>
+        <span class="badge bg-primary">Step 1: Email OTP</span>
       </div>
-      <div class="card-body">
-        <h5 class="text-center mb-4">Register to use CDAVP</h5>
+      <div class="card-custom-body p-4">
+        
+        <p class="text-muted small mb-4">
+          Register on the CDAVP platform to file FIR complaints online, track case progress, and access crime analytics. A 6-digit verification code will be sent to your email.
+        </p>
 
-        <form method="POST">
+        <form method="POST" novalidate>
           {% csrf_token %}
-          {% for field in form %}
-          <div class="mb-3">
-            <label class="form-label">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}
-            <small class="form-text text-muted d-block mt-1">{{ field.help_text|safe }}</small>
-            {% endif %}
-            {% if field.errors %}
-            <div class="text-danger small mt-1">{{ field.errors }}</div>
-            {% endif %}
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1">{{ form.first_name.label }}</label>
+              {{ form.first_name }}
+              {% if form.first_name.errors %}<div class="text-danger small mt-1">{{ form.first_name.errors }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1">{{ form.last_name.label }}</label>
+              {{ form.last_name }}
+              {% if form.last_name.errors %}<div class="text-danger small mt-1">{{ form.last_name.errors }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1">{{ form.username.label }}</label>
+              {{ form.username }}
+              {% if form.username.errors %}<div class="text-danger small mt-1">{{ form.username.errors }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1">{{ form.email.label }}</label>
+              {{ form.email }}
+              {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors }}</div>{% endif %}
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-bold text-muted mb-1">{{ form.phone_number.label }}</label>
+              {{ form.phone_number }}
+              {% if form.phone_number.errors %}<div class="text-danger small mt-1">{{ form.phone_number.errors }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1">{{ form.password.label }}</label>
+              {{ form.password }}
+              {% if form.password.errors %}<div class="text-danger small mt-1">{{ form.password.errors }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1">{{ form.confirm_password.label }}</label>
+              {{ form.confirm_password }}
+              {% if form.confirm_password.errors %}<div class="text-danger small mt-1">{{ form.confirm_password.errors }}</div>{% endif %}
+            </div>
           </div>
-          {% endfor %}
-          <button type="submit" class="btn btn-success w-100">📝 Register</button>
+
+          <div class="mt-4">
+            <button type="submit" class="btn-primary-custom w-100 py-2 justify-content-center">
+              <i class="fa-solid fa-paper-plane me-1"></i> Send 6-Digit Email OTP
+            </button>
+          </div>
         </form>
 
-        <hr>
-        <p class="text-center">
-          Already have an account? <a href="/accounts/login/">Login here</a>
-        </p>
+        <div class="text-center mt-3 pt-3 border-top small text-muted">
+          Already have an account? <a href="{% url 'login' %}" class="fw-bold">Sign In Here</a>
+        </div>
+
       </div>
     </div>
   </div>
 </div>
-
 {% endblock %}

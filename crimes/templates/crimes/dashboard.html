@@ -1,226 +1,375 @@
 {% extends 'base.html' %}
-{% block title %}Dashboard - CDAVP{% endblock %}
+{% block title %}Dashboard – Crime Data Analysis & Visualization Portal{% endblock %}
+
 {% block content %}
-<div class="row">
-  <div class="col-md-12">
-    <h1 class="mb-2">Community Safety Dashboard</h1>
-    <p class="text-muted mb-4">Every complaint is shared across user accounts so everyone can stay alert about risky areas and unsafe time slots.</p>
+
+<!-- HERO BANNER -->
+<div class="page-hero d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+  <div>
+    <div class="hero-tag"><i class="fa-solid fa-chart-line"></i> Analytics & Visualization</div>
+    <h1 class="hero-title">Khargone District Crime Data Analysis Dashboard</h1>
+    <p class="hero-desc">
+      Interactive visual intelligence platform powered by Django, Pandas, Chart.js, and Leaflet.js for crime pattern identification and hotspot detection.
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'ai_analytics' %}" class="btn btn-warning fw-semibold px-3 py-2 text-dark">
+      <i class="fa-solid fa-brain me-1"></i> AI Risk Prediction
+    </a>
+    <a href="{% url 'crime_add' %}" class="btn-primary-custom">
+      <i class="fa-solid fa-plus-circle"></i> File Incident Report
+    </a>
+    <a href="{% url 'download_bulletin_pdf' %}" class="btn-danger-custom d-none d-sm-inline-flex">
+      <i class="fa-solid fa-file-pdf"></i> Bulletin PDF
+    </a>
   </div>
 </div>
 
-<div class="row mb-4">
-  <div class="col-md-3">
-    <div class="card bg-danger text-white">
-      <div class="card-body">
-        <h6 class="card-title">Total Complaints</h6>
-        <h3>{{ total_crimes }}</h3>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card bg-warning text-dark">
-      <div class="card-body">
-        <h6 class="card-title">Red Alert Areas</h6>
-        <h3>{{ alert_summary.red_count }}</h3>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card bg-info text-white">
-      <div class="card-body">
-        <h6 class="card-title">Yellow Alert Areas</h6>
-        <h3>{{ alert_summary.yellow_count }}</h3>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card bg-success text-white">
-      <div class="card-body">
-        <h6 class="card-title">Add Complaint</h6>
-        <p class="mb-0"><a href="/crimes/add/" class="btn btn-sm btn-light">Report Now</a></p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="row mb-4">
-  <div class="col-md-6">
-    <div class="card h-100">
-      <div class="card-header bg-dark text-white">
-        <strong>Hotspot Areas</strong>
-      </div>
-      <div class="card-body">
-        {% for area in hotspot_areas %}
-        <div class="alert {% if area.alert_level == 'red' %}alert-danger{% elif area.alert_level == 'yellow' %}alert-warning{% else %}alert-success{% endif %} mb-3">
-          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-            <div>
-              <strong>{{ area.location_name }}</strong><br>
-              <span>{{ area.report_count }} complaints, top issue: {{ area.top_crime }}</span><br>
-              <small>Unsafe time slot: {{ area.unsafe_time_slot }}</small>
-            </div>
-            <span class="badge {% if area.alert_level == 'red' %}bg-danger{% elif area.alert_level == 'yellow' %}bg-warning text-dark{% else %}bg-success{% endif %}">
-              {{ area.alert_level|upper }} ALERT
-            </span>
-          </div>
+<!-- TOP KPI METRIC CARDS -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-box">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label">Total Records</span>
+        <div class="stat-box-icon" style="background: var(--primary-subtle); color: var(--primary);">
+          <i class="fa-solid fa-folder-open"></i>
         </div>
-        {% empty %}
-        <p class="text-muted mb-0">No complaint hotspots found yet.</p>
-        {% endfor %}
+      </div>
+      <div class="stat-box-value">{{ analytics.all_records_count|default:0 }}</div>
+      <small class="text-primary fw-semibold"><i class="fa-solid fa-shield-check me-1"></i>{{ analytics.verified_count|default:0 }} Active Cases</small>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="stat-box">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label">Hotspot Zones</span>
+        <div class="stat-box-icon" style="background: var(--danger-subtle); color: var(--danger);">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+      </div>
+      <div class="stat-box-value text-danger">{{ alert_summary.red_count|default:0 }}</div>
+      <small class="text-danger fw-semibold"><i class="fa-solid fa-circle-exclamation me-1"></i>High-Density Areas</small>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="stat-box">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label">Investigating</span>
+        <div class="stat-box-icon" style="background: var(--warning-subtle); color: var(--warning);">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+      </div>
+      <div class="stat-box-value text-warning">{{ analytics.investigating_count|default:0 }}</div>
+      <small class="text-muted">Inquiry in Progress</small>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="stat-box">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="stat-box-label">Resolved Cases</span>
+        <div class="stat-box-icon" style="background: var(--success-subtle); color: var(--success);">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+      </div>
+      <div class="stat-box-value text-success">{{ analytics.resolved_count|default:0 }}</div>
+      <small class="text-success fw-semibold"><i class="fa-solid fa-chart-line me-1"></i>{{ analytics.resolution_rate|default:0 }}% Solved Rate</small>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS ROW 1: MONTHLY TIME-SERIES LINE CHART & CRIME TYPES PIE CHART -->
+<div class="row g-3 mb-4">
+  <!-- LINE GRAPH: TIME-BASED TRENDS -->
+  <div class="col-lg-8">
+    <div class="card-custom h-100">
+      <div class="card-custom-header">
+        <h6 class="card-custom-title">
+          <i class="fa-solid fa-chart-line text-primary"></i> Monthly Incident Trend & Moving Average (Line Graph)
+        </h6>
+        <span class="badge bg-light text-dark border">Time Series</span>
+      </div>
+      <div class="card-custom-body">
+        <div style="height: 280px; position: relative;">
+          <canvas id="monthlyTrendChart"></canvas>
+        </div>
       </div>
     </div>
   </div>
-  <div class="col-md-6">
-    <div class="card h-100">
-      <div class="card-header bg-dark text-white">
-        <strong>Unsafe Time Slots</strong>
+
+  <!-- PIE/DOUGHNUT: CATEGORY BREAKDOWN -->
+  <div class="col-lg-4">
+    <div class="card-custom h-100">
+      <div class="card-custom-header">
+        <h6 class="card-custom-title">
+          <i class="fa-solid fa-chart-pie text-info"></i> Crime Type Distribution (Pie Chart)
+        </h6>
+        <span class="badge bg-light text-dark border">By Category</span>
       </div>
-      <div class="card-body">
-        <table class="table table-sm table-striped mb-0">
-          <thead>
-            <tr>
-              <th>Time Slot</th>
-              <th>Complaints</th>
-              <th>Risk</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for slot in risky_time_slots %}
-            <tr>
-              <td>{{ slot.label }}</td>
-              <td>{{ slot.count }}</td>
-              <td>
-                {% if slot.count >= 3 %}
-                <span class="badge bg-danger">High Risk</span>
-                {% elif slot.count >= 2 %}
-                <span class="badge bg-warning text-dark">Medium Risk</span>
-                {% else %}
-                <span class="badge bg-success">Low Risk</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="3" class="text-center text-muted">No time-slot analysis available.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="card-custom-body d-flex flex-column align-items-center justify-content-center">
+        <div style="height: 250px; width: 100%; position: relative;">
+          <canvas id="crimeTypeDonutChart"></canvas>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<div class="row">
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-header bg-dark text-white">
-        <strong>Complaints by Type</strong>
+<!-- CHARTS ROW 2: 24-HOUR BAR CHART & HOTSPOT SUMMARY -->
+<div class="row g-3 mb-4">
+  <!-- BAR CHART: 24-HOUR TEMPORAL DISTRIBUTION -->
+  <div class="col-lg-6">
+    <div class="card-custom h-100">
+      <div class="card-custom-header">
+        <h6 class="card-custom-title">
+          <i class="fa-solid fa-chart-column text-warning"></i> 24-Hour Peak Time Distribution (Bar Chart)
+        </h6>
+        <span class="badge bg-light text-dark border">Hourly Pattern</span>
       </div>
-      <div class="card-body">
-        <canvas id="typeChart"></canvas>
+      <div class="card-custom-body">
+        <div style="height: 250px; position: relative;">
+          <canvas id="hourlyDistributionChart"></canvas>
+        </div>
       </div>
     </div>
   </div>
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-header bg-dark text-white">
-        <strong>Monthly Complaint Trend</strong>
+
+  <!-- HOTSPOT CLUSTERS LIST -->
+  <div class="col-lg-6">
+    <div class="card-custom h-100">
+      <div class="card-custom-header">
+        <h6 class="card-custom-title">
+          <i class="fa-solid fa-map-pin text-danger"></i> High-Density Hotspot Clusters
+        </h6>
+        <a href="{% url 'map_view' %}" class="btn btn-sm btn-outline-primary">
+          Open Map View <i class="fa-solid fa-arrow-right ms-1"></i>
+        </a>
       </div>
-      <div class="card-body">
-        <canvas id="trendChart"></canvas>
+      <div class="card-custom-body p-0">
+        <div class="table-responsive">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>Location / Area</th>
+                <th>Incidents</th>
+                <th>Dominant Crime</th>
+                <th>Alert Tier</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cluster in hotspot_areas %}
+              <tr>
+                <td class="fw-semibold text-dark">{{ cluster.location_name }}</td>
+                <td><span class="badge bg-light text-dark border">{{ cluster.report_count }} Records</span></td>
+                <td>{{ cluster.top_crime }}</td>
+                <td>
+                  {% if cluster.alert_level == 'red' %}
+                  <span class="badge bg-danger">High Risk</span>
+                  {% elif cluster.alert_level == 'yellow' %}
+                  <span class="badge bg-warning text-dark">Moderate</span>
+                  {% else %}
+                  <span class="badge bg-success">Safe</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-4">No active clusters identified.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<div class="row mt-4">
-  <div class="col-md-12">
-    <div class="card">
-      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <strong>Shared Community Complaints</strong>
-        <a href="/map/" class="btn btn-sm btn-light">Open Alert Map</a>
-      </div>
-      <div class="card-body">
-        <table class="table table-striped table-sm">
-          <thead>
-            <tr>
-              <th>Crime Type</th>
-              <th>Location</th>
-              <th>Date</th>
-              <th>Time Slot</th>
-              <th>Reported By</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for crime in community_reports %}
-            <tr>
-              <td><span class="badge bg-danger">{{ crime.get_crime_type_display }}</span></td>
-              <td>{{ crime.location_name }}</td>
-              <td>{{ crime.date_time|date:"d M Y, h:i A" }}</td>
-              <td>
-                {% if crime.date_time.hour < 4 %}
-                12 AM - 4 AM
-                {% elif crime.date_time.hour < 8 %}
-                4 AM - 8 AM
-                {% elif crime.date_time.hour < 12 %}
-                8 AM - 12 PM
-                {% elif crime.date_time.hour < 16 %}
-                12 PM - 4 PM
-                {% elif crime.date_time.hour < 20 %}
-                4 PM - 8 PM
-                {% else %}
-                8 PM - 12 AM
-                {% endif %}
-              </td>
-              <td>{{ crime.reported_by.username|default:"N/A" }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="5" class="text-center text-muted">No reports submitted yet.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+<!-- RECENT INCIDENTS TABLE -->
+<div class="card-custom">
+  <div class="card-custom-header">
+    <h6 class="card-custom-title">
+      <i class="fa-solid fa-list text-primary"></i> Recent Incident Records
+    </h6>
+    <a href="{% url 'crime_list' %}" class="btn btn-sm btn-link p-0 text-primary text-decoration-none fw-semibold">
+      View All Records <i class="fa-solid fa-arrow-right ms-1"></i>
+    </a>
+  </div>
+  <div class="card-custom-body p-0">
+    <div class="table-responsive">
+      <table class="table-custom">
+        <thead>
+          <tr>
+            <th>FIR #</th>
+            <th>Type</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th>Severity</th>
+            <th>Date Registered</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for crime in recent_crimes|slice:":6" %}
+          <tr>
+            <td class="fw-bold">
+              <a href="{% url 'crime_detail' crime.pk %}">{{ crime.fir_number }}</a>
+            </td>
+            <td><span class="badge bg-light text-dark border">{{ crime.get_crime_type_display }}</span></td>
+            <td>{{ crime.location_name|default:"Khargone"|truncatechars:20 }}</td>
+            <td>
+              <span class="badge-status badge-status-{{ crime.status }}">
+                {{ crime.get_status_display }}
+              </span>
+            </td>
+            <td><span class="badge bg-light text-dark border text-capitalize">{{ crime.severity_level }}</span></td>
+            <td class="text-muted small">{{ crime.created_at|date:"d M Y, H:i" }}</td>
+            <td class="text-end">
+              <a href="{% url 'crime_detail' crime.pk %}" class="btn btn-sm btn-outline-primary py-1 px-2">Details</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">No recent incident records found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
+
+<!-- EMBEDDED ANALYTICS JSON -->
+<script id="dashboard-analytics-data" type="application/json">{{ analytics_json|default:'{}'|safe }}</script>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-var typeLabels = {{ chart_labels|safe }};
-var typeCounts = {{ chart_counts|safe }};
-var monthLabels = {{ month_labels|safe }};
-var monthCounts = {{ month_counts|safe }};
+document.addEventListener('DOMContentLoaded', function() {
+  const analyticsData = JSON.parse(document.getElementById('dashboard-analytics-data')?.textContent || '{}');
 
-var colors = ['#d62828', '#f77f00', '#003049', '#9d0208', '#3a86ff', '#6c757d', '#2a9d8f', '#8d99ae'];
+  if (typeof Chart === 'undefined') {
+    console.warn("Chart.js not yet loaded. Injecting script...");
+    const script = document.createElement('script');
+    script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
+    script.onload = initDashboardCharts;
+    document.head.appendChild(script);
+  } else {
+    initDashboardCharts();
+  }
 
-new Chart(document.getElementById('typeChart'), {
-  type: 'bar',
-  data: {
-    labels: typeLabels,
-    datasets: [{
-      label: 'Complaints',
-      data: typeCounts,
-      backgroundColor: colors.slice(0, typeLabels.length),
-      borderRadius: 5
-    }]
-  },
-  options: { responsive: true, plugins: { legend: { display: false } } }
-});
+  function initDashboardCharts() {
+    // 1. MONTHLY INCIDENT TREND LINE CHART
+    const trendCtx = document.getElementById('monthlyTrendChart');
+    if (trendCtx) {
+      const mLabels = (analyticsData.monthly_labels && analyticsData.monthly_labels.length) ? analyticsData.monthly_labels : ['Recent'];
+      const mValues = (analyticsData.monthly_values && analyticsData.monthly_values.length) ? analyticsData.monthly_values : [analyticsData.total_crimes || 0];
+      const mAvg = (analyticsData.monthly_moving_avg && analyticsData.monthly_moving_avg.length) ? analyticsData.monthly_moving_avg : mValues;
 
-new Chart(document.getElementById('trendChart'), {
-  type: 'line',
-  data: {
-    labels: monthLabels,
-    datasets: [{
-      label: 'Complaints',
-      data: monthCounts,
-      borderColor: '#d62828',
-      backgroundColor: 'rgba(214, 40, 40, 0.12)',
-      borderWidth: 2,
-      tension: 0.3,
-      fill: true
-    }]
-  },
-  options: { responsive: true, plugins: { legend: { display: true } } }
+      new Chart(trendCtx, {
+        type: 'line',
+        data: {
+          labels: mLabels,
+          datasets: [
+            {
+              label: 'Reported Incidents',
+              data: mValues,
+              borderColor: '#2563eb',
+              backgroundColor: 'rgba(37, 99, 235, 0.1)',
+              fill: true,
+              tension: 0.3,
+              borderWidth: 2.5,
+              pointRadius: 4,
+              pointBackgroundColor: '#2563eb',
+            },
+            {
+              label: 'Moving Average',
+              data: mAvg,
+              borderColor: '#0284c7',
+              borderDash: [5, 5],
+              borderWidth: 2,
+              pointRadius: 0,
+              fill: false,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top', labels: { boxWidth: 12 } }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { stepSize: 1 } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    // 2. CRIME CATEGORY PIE / DONUT CHART
+    const donutCtx = document.getElementById('crimeTypeDonutChart');
+    if (donutCtx) {
+      const labels = (analyticsData.type_labels && analyticsData.type_labels.length) ? analyticsData.type_labels : ['General'];
+      const values = (analyticsData.type_data && analyticsData.type_data.length) ? analyticsData.type_data : [1];
+      const colors = (analyticsData.type_colors && analyticsData.type_colors.length) ? analyticsData.type_colors : ['#2563eb', '#dc2626', '#d97706', '#16a34a', '#0284c7', '#7c3aed'];
+
+      new Chart(donutCtx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors,
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } }
+          },
+          cutout: '60%'
+        }
+      });
+    }
+
+    // 3. HOURLY DISTRIBUTION BAR CHART
+    const hourlyCtx = document.getElementById('hourlyDistributionChart');
+    if (hourlyCtx) {
+      const hLabels = analyticsData.hourly_labels || Array.from({length: 24}, function(_, i) { return (i < 10 ? '0' : '') + i + ':00'; });
+      const hData = analyticsData.hourly_data || Array(24).fill(0);
+
+      new Chart(hourlyCtx, {
+        type: 'bar',
+        data: {
+          labels: hLabels,
+          datasets: [{
+            label: 'Incident Frequency',
+            data: hData,
+            backgroundColor: '#3b82f6',
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { stepSize: 1 } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+  }
 });
 </script>
 {% endblock %}

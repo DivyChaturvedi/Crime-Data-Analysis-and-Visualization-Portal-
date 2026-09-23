@@ -1,34 +1,262 @@
 {% extends 'base.html' %}
-{% block title %}{{ action }} Crime - CDAVP{% endblock %}
+{% block title %}{{ action|default:"Report" }} Incident – CDAVP Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+  #pinpointMap {
+    height: 440px;
+    width: 100%;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+  }
+
+  .ai-suggestion-box {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    display: none;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row">
-  <div class="col-md-8 offset-md-2">
-    <div class="card">
-      <div class="card-header bg-dark text-white">
-        <strong>{{ action }} Crime Record</strong>
+
+<!-- PAGE HERO -->
+<div class="page-hero d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+  <div>
+    <div class="hero-tag"><i class="fa-solid fa-file-pen"></i> FIR Entry</div>
+    <h1 class="hero-title">{{ action|default:"File New" }} Incident Report (FIR)</h1>
+    <p class="hero-desc">
+      Submit incident information. Pinpoint location on the map or use your device GPS.
+    </p>
+  </div>
+  <div>
+    <a href="{% url 'crime_list' %}" class="btn btn-outline-light">
+      <i class="fa-solid fa-arrow-left me-1"></i> Back to Records
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- FORM -->
+  <div class="col-lg-7">
+    <div class="card-custom">
+      <div class="card-custom-header bg-light">
+        <h6 class="card-custom-title">
+          <i class="fa-solid fa-pen-to-square text-primary"></i> Incident Details
+        </h6>
+        <span class="badge bg-primary">FIR Form</span>
       </div>
-      <div class="card-body">
-        <div class="alert alert-info">
-          This complaint will be visible to all logged-in users and will be included in hotspot alerts and unsafe time-slot analysis.
-        </div>
-        <form method="POST">
+      <div class="card-custom-body">
+        
+        <form method="POST" enctype="multipart/form-data" id="crimeReportForm" class="d-flex flex-column gap-3">
           {% csrf_token %}
-          {% for field in form %}
-          <div class="mb-3">
-            <label class="form-label">{{ field.label }}</label>
-            {{ field }}
-            {% if field.errors %}
-            <div class="text-danger small mt-1">{{ field.errors }}</div>
-            {% endif %}
+
+          <input type="hidden" name="latitude" id="id_latitude" value="{{ form.latitude.value|default:'21.8247' }}">
+          <input type="hidden" name="longitude" id="id_longitude" value="{{ form.longitude.value|default:'75.6102' }}">
+
+          <!-- NARRATIVE -->
+          <div>
+            <label class="form-label small fw-bold text-muted mb-1" for="id_description">
+              Incident Narrative / Description <span class="text-danger">*</span>
+            </label>
+            {{ form.description }}
+            <small class="text-muted" style="font-size: 11px;">Describe the incident. AI will analyze the text in real-time.</small>
           </div>
-          {% endfor %}
-          <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-            <button type="submit" class="btn btn-success">Save</button>
-            <a href="/crimes/" class="btn btn-secondary">Cancel</a>
+
+          <!-- AI NLP SUGGESTION -->
+          <div class="ai-suggestion-box" id="aiSuggestionBox">
+            <div class="d-flex align-items-center justify-content-between">
+              <div class="small">
+                <strong class="text-primary me-1"><i class="fa-solid fa-brain me-1"></i>AI Suggested:</strong>
+                <span class="badge bg-primary me-1" id="aiSuggestedCategory">Theft</span>
+                <span class="badge bg-secondary" id="aiSuggestedSeverity">Medium</span>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" id="btnApplyAiSuggestion">
+                Apply
+              </button>
+            </div>
           </div>
+
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1" for="id_crime_type">Crime Category</label>
+              {{ form.crime_type }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1" for="id_severity_level">Severity Level</label>
+              {{ form.severity_level }}
+            </div>
+          </div>
+
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1" for="id_location_name">Location Name</label>
+              {{ form.location_name }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1" for="id_police_station">Police Station</label>
+              {{ form.police_station }}
+            </div>
+          </div>
+
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1" for="id_incident_datetime">Incident Date & Time</label>
+              {{ form.incident_datetime }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1" for="id_weapon_involved">Weapon Involved</label>
+              {{ form.weapon_involved }}
+            </div>
+          </div>
+
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1" for="id_victim_gender">Victim Gender</label>
+              {{ form.victim_gender }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-muted mb-1" for="id_victim_age_group">Victim Age Group</label>
+              {{ form.victim_age_group }}
+            </div>
+          </div>
+
+          {% if form.proof_file %}
+          <div>
+            <label class="form-label small fw-bold text-muted mb-1" for="id_proof_file">Attach Document / Evidence</label>
+            {{ form.proof_file }}
+          </div>
+          {% endif %}
+
+          <div class="mt-2">
+            <button type="submit" class="btn-primary-custom w-100 py-2 justify-content-center">
+              <i class="fa-solid fa-check me-1"></i> Submit FIR Report
+            </button>
+          </div>
+
         </form>
+
       </div>
     </div>
   </div>
+
+  <!-- MAP -->
+  <div class="col-lg-5">
+    <div class="card-custom h-100">
+      <div class="card-custom-header bg-light">
+        <h6 class="card-custom-title">
+          <i class="fa-solid fa-map-pin text-danger"></i> Pinpoint Location
+        </h6>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="btnGpsPinpoint">
+          <i class="fa-solid fa-crosshairs me-1"></i> Use GPS
+        </button>
+      </div>
+      <div class="card-custom-body">
+        <div id="pinpointMap" class="mb-2"></div>
+        <div class="p-2 bg-light rounded border small">
+          <div>Selected Coords: <strong class="text-primary font-monospace" id="displayLat">21.8247</strong>, <strong class="text-primary font-monospace" id="displayLng">75.6102</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const defaultLat = parseFloat(document.getElementById('id_latitude').value) || 21.8247;
+  const defaultLng = parseFloat(document.getElementById('id_longitude').value) || 75.6102;
+
+  const pMap = L.map('pinpointMap').setView([defaultLat, defaultLng], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(pMap);
+
+  let pinMarker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(pMap);
+
+  function updateCoords(lat, lng) {
+    document.getElementById('id_latitude').value = lat.toFixed(6);
+    document.getElementById('id_longitude').value = lng.toFixed(6);
+    document.getElementById('displayLat').textContent = lat.toFixed(6);
+    document.getElementById('displayLng').textContent = lng.toFixed(6);
+  }
+  updateCoords(defaultLat, defaultLng);
+
+  pinMarker.on('dragend', function(e) {
+    const pos = e.target.getLatLng();
+    updateCoords(pos.lat, pos.lng);
+  });
+
+  pMap.on('click', function(e) {
+    pinMarker.setLatLng(e.latlng);
+    updateCoords(e.latlng.lat, e.latlng.lng);
+  });
+
+  document.getElementById('btnGpsPinpoint').addEventListener('click', () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        pMap.setView([pos.coords.latitude, pos.coords.longitude], 15);
+        pinMarker.setLatLng([pos.coords.latitude, pos.coords.longitude]);
+        updateCoords(pos.coords.latitude, pos.coords.longitude);
+        showToast('GPS position set!', 'success');
+      });
+    }
+  });
+
+  // Real-time NLP suggestion
+  const descInput = document.getElementById('id_description');
+  const suggestionBox = document.getElementById('aiSuggestionBox');
+  const suggestedCatSpan = document.getElementById('aiSuggestedCategory');
+  const suggestedSevSpan = document.getElementById('aiSuggestedSeverity');
+  const applyBtn = document.getElementById('btnApplyAiSuggestion');
+  let debounceTimer = null;
+  let predictedCat = null;
+  let predictedSev = null;
+
+  if (descInput) {
+    descInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const val = descInput.value.trim();
+      if (val.length < 8) {
+        suggestionBox.style.display = 'none';
+        return;
+      }
+
+      debounceTimer = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/ml/classify-text/?text=${encodeURIComponent(val)}`);
+          const data = await res.json();
+          if (data.status === 'success' && data.data) {
+            predictedCat = data.data.predicted_crime_type;
+            predictedSev = data.data.predicted_severity;
+            suggestedCatSpan.textContent = data.data.crime_type_display;
+            suggestedSevSpan.textContent = data.data.severity_display;
+            suggestionBox.style.display = 'block';
+          }
+        } catch (e) {}
+      }, 500);
+    });
+
+    applyBtn.addEventListener('click', () => {
+      if (predictedCat) {
+        const catSelect = document.getElementById('id_crime_type');
+        if (catSelect) catSelect.value = predictedCat;
+      }
+      if (predictedSev) {
+        const sevSelect = document.getElementById('id_severity_level');
+        if (sevSelect) sevSelect.value = predictedSev;
+      }
+      showToast('AI suggestion applied!', 'success');
+      suggestionBox.style.display = 'none';
+    });
+  }
+
+});
+</script>
 {% endblock %}

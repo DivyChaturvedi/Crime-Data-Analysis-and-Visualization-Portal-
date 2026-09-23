@@ -1,9 +1,37 @@
-venv/
+# Python & Bytecode
 __pycache__/
 *.py[cod]
-db.sqlite3
-.env
+*$py.class
+*.so
+
+# Virtual Environments
+venv/
 .venv/
+env/
+ENV/
+
+# Django artifacts
 *.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+
+# Uploaded media (keep folder structure, ignore uploaded files)
+media/proofs/*
+!media/proofs/.gitkeep
+!media/proofs/logo.png
+
+# Environment & Secrets
+.env
+.env.local
+
+# IDEs & System files
+.vscode/
+.idea/
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
+desktop.ini
+

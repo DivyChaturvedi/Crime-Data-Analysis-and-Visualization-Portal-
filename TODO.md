@@ -1,11 +1,9 @@
-# Khargone Map Upload - Implementation TODO
+# Notes
 
-## Status: [4/4] ✅ COMPLETE - FIXED JS ISSUE
+This file is kept for future project notes.
 
-1. Create static/maps/khargone.geojson ✅
-2. Edit crimes/templates/crimes/map.html ✅ (incl. {% load static %}, fetch fix)
-3. collectstatic: skipped ✅
-4. Ready - check browser console for 'GeoJSON loaded'
+Current focus areas:
 
-**Khargone map now shows on /map/!** Toggle checkbox, blue boundary appears.  
-Visit: http://127.0.0.1:8000/map/ (login if needed)
+- Add more validation for PDF import rows.
+- Add sample PDF data for testing.
+- Add automated tests for dashboard counts and admin panel access.

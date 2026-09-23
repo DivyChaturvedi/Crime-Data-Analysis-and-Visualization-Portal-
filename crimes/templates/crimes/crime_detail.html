@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% block title %}FIR Dossier: {{ crime.fir_number }} – CDAVP{% endblock %}
+
+{% block extra_css %}
+<style>
+  #detailMap {
+    height: 260px;
+    width: 100%;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+  }
+
+  .timeline-list {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0;
+  }
+
+  .timeline-item {
+    position: relative;
+    padding-left: 28px;
+    padding-bottom: 20px;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 20px;
+    bottom: 0;
+    width: 2px;
+    background: var(--border-color);
+  }
+
+  .timeline-item:last-child::before {
+    display: none;
+  }
+
+  .timeline-bullet {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: #ffffff;
+  }
+
+  .timeline-item.done .timeline-bullet {
+    background: var(--success);
+  }
+
+  .timeline-item.current .timeline-bullet {
+    background: var(--primary);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HERO -->
+<div class="page-hero d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+  <div>
+    <div class="hero-tag"><i class="fa-solid fa-file-lines"></i> Case File</div>
+    <h1 class="hero-title">{{ crime.fir_number }}</h1>
+    <p class="hero-desc">
+      {{ crime.get_crime_type_display }} @ {{ crime.location_name|default:"Khargone District" }} • Status: <strong>{{ crime.get_status_display }}</strong>
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'download_fir_pdf' crime.pk %}" class="btn-danger-custom">
+      <i class="fa-solid fa-file-pdf"></i> Download Official FIR Slip
+    </a>
+    {% if is_owner %}
+    <a href="{% url 'crime_edit' crime.pk %}" class="btn-primary-custom">
+      <i class="fa-solid fa-pen"></i> Edit Case
+    </a>
+    {% endif %}
+    <a href="{% url 'crime_list' %}" class="btn btn-outline-light">
+      <i class="fa-solid fa-arrow-left me-1"></i> Records
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- LEFT: FACTS & TIMELINE -->
+  <div class="col-lg-8">
+    
+    <div class="card-custom mb-3">
+      <div class="card-custom-header bg-light">
+        <h6 class="card-custom-title">
+          <i class="fa-solid fa-circle-info text-primary"></i> Incident Facts
+        </h6>
+        <div class="d-flex gap-1">
+          <span class="badge bg-secondary text-capitalize">{{ crime.severity_level }}</span>
+          <span class="badge-status badge-status-{{ crime.status }}">{{ crime.get_status_display }}</span>
+        </div>
+      </div>
+      <div class="card-custom-body">
+        <div class="row g-3 mb-3">
+          <div class="col-sm-6">
+            <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 11px;">Offense Category</small>
+            <strong class="text-dark">{{ crime.get_crime_type_display }}</strong>
+          </div>
+          <div class="col-sm-6">
+            <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 11px;">Police Station</small>
+            <strong class="text-dark">{{ crime.police_station|default:"Khargone Kotwali PS" }}</strong>
+          </div>
+          <div class="col-sm-6">
+            <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 11px;">Incident Timestamp</small>
+            <span>{{ crime.incident_datetime|default:crime.created_at|date:"d M Y, h:i A" }}</span>
+          </div>
+          <div class="col-sm-6">
+            <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 11px;">Investigating Officer</small>
+            <span>{{ crime.investigating_officer|default:"Assigned Officer" }}</span>
+          </div>
+          <div class="col-sm-6">
+            <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 11px;">Weapon / Means</small>
+            <span>{{ crime.weapon_involved|default:"None Reported" }}</span>
+          </div>
+          <div class="col-sm-6">
+            <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 11px;">Victim Demographics</small>
+            <span>{{ crime.get_victim_gender_display|default:"Unknown" }} • {{ crime.get_victim_age_group_display|default:"Unknown Age" }}</span>
+          </div>
+        </div>
+
+        <div class="p-3 bg-light rounded border mb-2">
+          <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 11px;">Official Statement</small>
+          <p class="text-dark mb-0 small" style="line-height: 1.6;">
+            {{ crime.description }}
+          </p>
+        </div>
+
+        {% if crime.admin_remark %}
+        <div class="p-3 bg-warning-subtle rounded border border-warning mb-0">
+          <small class="text-warning fw-bold text-uppercase d-block mb-1" style="font-size: 11px;">Police Remarks</small>
+          <p class="text-dark mb-0 small">{{ crime.admin_remark }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="card-custom">
+      <div class="card-custom-header bg-light">
+        <h6 class="card-custom-title">
+          <i class="fa-solid fa-timeline text-primary"></i> Case Lifecycle Stages
+        </h6>
+      </div>
+      <div class="card-custom-body">
+        <ul class="timeline-list">
+          <li class="timeline-item done">
+            <div class="timeline-bullet"><i class="fa-solid fa-check"></i></div>
+            <strong class="d-block text-dark small">1. Complaint Lodged</strong>
+            <small class="text-muted">Registered in portal on {{ crime.created_at|date:"d M Y, h:i A" }}</small>
+          </li>
+          <li class="timeline-item {% if crime.status in 'approved,investigating,resolved' %}done{% elif crime.status == 'pending' %}current{% endif %}">
+            <div class="timeline-bullet"><i class="fa-solid fa-check"></i></div>
+            <strong class="d-block text-dark small">2. Verification & Police Station Intake</strong>
+            <small class="text-muted">Reviewed and verified by jurisdictional station</small>
+          </li>
+          <li class="timeline-item {% if crime.status in 'investigating,resolved' %}done{% elif crime.status == 'approved' %}current{% endif %}">
+            <div class="timeline-bullet"><i class="fa-solid fa-check"></i></div>
+            <strong class="d-block text-dark small">3. Field Investigation</strong>
+            <small class="text-muted">Investigation and evidence collection in progress</small>
+          </li>
+          <li class="timeline-item {% if crime.status == 'resolved' %}done{% endif %}">
+            <div class="timeline-bullet"><i class="fa-solid fa-check"></i></div>
+            <strong class="d-block text-dark small">4. Final Resolution</strong>
+            <small class="text-muted">Inquiry concluded and final report filed</small>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: MAP & ATTACHMENT -->
+  <div class="col-lg-4">
+    <div class="card-custom mb-3">
+      <div class="card-custom-header bg-light">
+        <h6 class="card-custom-title"><i class="fa-solid fa-map-pin text-danger"></i> Incident Location</h6>
+      </div>
+      <div class="card-custom-body">
+        <div id="detailMap" class="mb-2"></div>
+        <small class="text-muted d-block">
+          <i class="fa-solid fa-location-dot text-danger me-1"></i> {{ crime.location_name|default:"Khargone District" }}
+        </small>
+      </div>
+    </div>
+
+    <div class="card-custom">
+      <div class="card-custom-header bg-light">
+        <h6 class="card-custom-title"><i class="fa-solid fa-paperclip text-info"></i> Evidence</h6>
+      </div>
+      <div class="card-custom-body text-center p-3">
+        {% if crime.proof_file %}
+        <i class="fa-solid fa-file-shield fs-1 text-primary mb-2"></i>
+        <div class="small fw-bold mb-2">Attached Document / Evidence</div>
+        <a href="{{ crime.proof_file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">Download Attachment</a>
+        {% else %}
+        <p class="text-muted small mb-0">No digital evidence attached.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const lat = parseFloat("{{ crime.latitude|default:'21.8247' }}");
+  const lng = parseFloat("{{ crime.longitude|default:'75.6102' }}");
+
+  const map = L.map('detailMap', {
+    center: [lat, lng],
+    zoom: 14,
+    zoomControl: false,
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  L.marker([lat, lng]).addTo(map).bindPopup('<strong>FIR Location</strong><br>{{ crime.location_name|escapejs }}').openPopup();
+});
+</script>
+{% endblock %}

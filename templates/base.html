@@ -1,51 +1,223 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}CDAVP{% endblock %}</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  {% load static %}
+  <meta name="description" content="Crime Data Analysis & Visualization Portal (CDAVP) - RGPV Minor Project-II">
+  <meta name="theme-color" content="#0f172a">
+
+  <title>{% block title %}Crime Data Analysis & Visualization Portal (CDAVP){% endblock %}</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5.3.3 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Font Awesome 6.5.2 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <!-- Leaflet 1.9.4 CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css">
+
+  <!-- Chart.js 4.4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Custom Core Design System CSS -->
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+  {% block extra_css %}{% endblock %}
 </head>
+
 <body>
-{% if user.is_authenticated %}
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="/">🚨 CDAVP</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" href="/dashboard/">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="/crimes/">Records</a></li>
-        <li class="nav-item"><a class="nav-link" href="/map/">Map</a></li>
-        <li class="nav-item"><a class="nav-link" href="/crimes/upload/">Upload</a></li>
-        <li class="nav-item"><a class="nav-link" href="/accounts/logout/">Logout ({{ user.username }})</a></li>
-      </ul>
+
+  <!-- EMERGENCY SOS HELPLINE RIBBON -->
+  <div class="emergency-top-bar">
+    <div class="container-fluid px-3 px-lg-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <span><i class="fa-solid fa-triangle-exclamation me-1"></i> <strong>24/7 HELPLINES:</strong></span>
+        <a href="tel:100" class="emergency-chip"><i class="fa-solid fa-phone"></i> Police: 100 / 112</a>
+        <a href="tel:1090" class="emergency-chip d-none d-sm-inline-flex"><i class="fa-solid fa-shield-halved"></i> Women: 1090</a>
+        <a href="tel:1930" class="emergency-chip d-none d-md-inline-flex"><i class="fa-solid fa-laptop-code"></i> Cyber Fraud: 1930</a>
+        <a href="tel:108" class="emergency-chip d-none d-lg-inline-flex"><i class="fa-solid fa-truck-medical"></i> Ambulance: 108</a>
+      </div>
+      <div>
+        <a href="{% url 'alerts_view' %}" class="emergency-chip emergency-chip-alert">
+          <i class="fa-solid fa-bullhorn me-1"></i> Safety Alerts
+        </a>
+      </div>
     </div>
   </div>
-</nav>
-{% endif %}
 
-<div class="container-fluid mt-4">
-  {% if messages %}{% for message in messages %}
-  <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-    {{ message }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  </div>
-  {% endfor %}{% endif %}
-  {% block content %}{% endblock %}
-</div>
+  <!-- MAIN NAVIGATION BAR -->
+  <nav class="navbar navbar-expand-lg navbar-custom">
+    <div class="container-fluid px-3 px-lg-4">
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <!-- LOGO -->
+      <a class="navbar-brand d-flex align-items-center gap-2 text-decoration-none" href="{% url 'dashboard' %}">
+        <div class="navbar-brand-logo">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div>
+          <div class="fw-bold text-white fs-6 lh-1">CDAVP</div>
+          <small class="brand-subtext">Crime Data Portal</small>
+        </div>
+      </a>
 
-{% block extra_js %}{% endblock %}
+      <!-- MOBILE HAMBURGER -->
+      <button class="navbar-toggler border-0 shadow-none text-white" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbarCollapse" aria-controls="mainNavbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+        <i class="fa-solid fa-bars fs-4 text-white"></i>
+      </button>
+
+      <!-- MENU -->
+      <div class="collapse navbar-collapse" id="mainNavbarCollapse">
+        <ul class="navbar-nav ms-auto align-items-lg-center gap-1 mt-2 mt-lg-0">
+          
+          <li class="nav-item">
+            <a class="nav-link nav-link-custom {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'dashboard_alias' %}active{% endif %}" href="{% url 'dashboard' %}">
+              <i class="fa-solid fa-chart-pie"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link nav-link-custom {% if request.resolver_match.url_name == 'ai_analytics' %}active{% endif %}" href="{% url 'ai_analytics' %}">
+              <i class="fa-solid fa-brain text-warning"></i>
+              <span>AI Analytics</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link nav-link-custom {% if request.resolver_match.url_name == 'map_view' %}active{% endif %}" href="{% url 'map_view' %}">
+              <i class="fa-solid fa-map-location-dot text-info"></i>
+              <span>Hotspot Map</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link nav-link-custom {% if request.resolver_match.url_name == 'crime_list' or request.resolver_match.url_name == 'crime_detail' %}active{% endif %}" href="{% url 'crime_list' %}">
+              <i class="fa-solid fa-database text-secondary"></i>
+              <span>FIR Records</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link nav-link-custom {% if request.resolver_match.url_name == 'alerts_view' %}active{% endif %}" href="{% url 'alerts_view' %}">
+              <i class="fa-solid fa-tower-broadcast text-danger"></i>
+              <span>Alerts</span>
+            </a>
+          </li>
+
+          {% if user.is_authenticated and user.is_staff %}
+          <li class="nav-item">
+            <a class="nav-link nav-link-custom {% if request.resolver_match.url_name == 'admin_panel' %}active{% endif %}" href="{% url 'admin_panel' %}">
+              <i class="fa-solid fa-user-shield text-success"></i>
+              <span>Admin Panel</span>
+            </a>
+          </li>
+          {% endif %}
+
+          <li class="nav-item ms-lg-2 my-1 my-lg-0">
+            <a href="{% url 'crime_add' %}" class="btn-primary-custom text-nowrap">
+              <i class="fa-solid fa-plus-circle"></i>
+              <span>File FIR</span>
+            </a>
+          </li>
+
+          {% if user.is_authenticated %}
+          <li class="nav-item dropdown ms-lg-2">
+            <a class="nav-link dropdown-toggle text-white d-flex align-items-center gap-1" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="badge bg-secondary bg-opacity-50 text-white rounded-pill px-3 py-2">
+                <i class="fa-solid fa-user me-1"></i> {{ user.username }}
+              </span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border mt-2">
+              <li><a class="dropdown-item py-2" href="{% url 'profile' %}"><i class="fa-solid fa-id-card me-2 text-primary"></i>My Profile & Cases</a></li>
+              {% if user.is_staff %}
+              <li><a class="dropdown-item py-2" href="{% url 'csv_upload' %}"><i class="fa-solid fa-file-csv me-2 text-success"></i>Bulk CSV Upload</a></li>
+              <li><a class="dropdown-item py-2" href="{% url 'download_bulletin_pdf' %}"><i class="fa-solid fa-file-pdf me-2 text-danger"></i>District Bulletin PDF</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item py-2" href="/admin/" target="_blank"><i class="fa-solid fa-gears me-2 text-muted"></i>Django Admin</a></li>
+              {% endif %}
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item py-2 text-danger" href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket me-2"></i>Sign Out</a></li>
+            </ul>
+          </li>
+          {% else %}
+          <li class="nav-item ms-lg-2 d-flex gap-2 my-1 my-lg-0">
+            <a href="{% url 'login' %}" class="btn btn-outline-light btn-sm px-3">Sign In</a>
+            <a href="{% url 'register' %}" class="btn btn-primary btn-sm px-3">Sign Up (OTP)</a>
+          </li>
+          {% endif %}
+
+        </ul>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="container-fluid px-3 px-lg-4 py-4 flex-grow-1">
+    
+    <!-- FLASH MESSAGES -->
+    {% if messages %}
+      <div class="messages-container mb-3">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show border shadow-sm rounded-3 d-flex align-items-center gap-2 mb-2" role="alert">
+            {% if message.tags == 'success' %}
+              <i class="fa-solid fa-circle-check text-success fs-5"></i>
+            {% elif message.tags == 'error' or message.tags == 'danger' %}
+              <i class="fa-solid fa-circle-exclamation text-danger fs-5"></i>
+            {% elif message.tags == 'warning' %}
+              <i class="fa-solid fa-triangle-exclamation text-warning fs-5"></i>
+            {% else %}
+              <i class="fa-solid fa-circle-info text-info fs-5"></i>
+            {% endif %}
+            <div class="flex-grow-1 alert-text-content">{{ message }}</div>
+            <button type="button" class="btn-close shadow-none" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block content %}
+    {% endblock %}
+    
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-white text-muted py-3 mt-auto border-top">
+    <div class="container-fluid px-3 px-lg-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 small">
+      <div class="d-flex align-items-center gap-2 text-dark">
+        <i class="fa-solid fa-shield-halved text-primary"></i>
+        <strong>CDAVP</strong>
+        <span class="text-muted">| Crime Data Analysis & Visualization Portal (Minor Project-II - RGPV Bhopal)</span>
+      </div>
+      <div>
+        <span>Session: Jan–June 2026</span>
+        <span class="mx-2">•</span>
+        <span>Dept of CSE & IT, JIT Borawan</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Leaflet Core & Plugins JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+  <!-- CDAVP Standard JS -->
+  <script src="{% static 'js/app.js' %}"></script>
+
+  {% block extra_js %}{% endblock %}
+
 </body>
 </html>
