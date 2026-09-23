@@ -36,9 +36,11 @@ if not DEBUG and not _is_running_tests:
         warnings.warn(
             "[SECURITY] ALLOWED_HOSTS contains '*' in a production environment. "
             "Set ALLOWED_HOSTS to your specific domain in .env.",
-            stacklevel=2
         )
 
+# ── Referrer Policy ──────────────────────────────────────────────────────────
+# Allow external CDN map tiles and assets to receive valid origin headers
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
