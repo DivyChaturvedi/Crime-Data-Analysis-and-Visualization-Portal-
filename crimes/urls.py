@@ -25,7 +25,8 @@ urlpatterns = [
     
     # Admin Panel & Command Controls
     path('admin-panel/', views.admin_panel, name='admin_panel'),
-    path('admin-panel/update-status/<int:pk>/<str:new_status>/', views.admin_update_status, name='admin_update_status'),
+    path('admin-panel/update-status/<int:pk>/', views.admin_update_status, name='admin_update_status'),
+    path('admin-panel/update-status/<int:pk>/<str:new_status>/', views.admin_update_status, name='admin_update_status_legacy'),
     path('admin-panel/retrain-ml/', views.admin_retrain_ml, name='admin_retrain_ml'),
     
     # APIs

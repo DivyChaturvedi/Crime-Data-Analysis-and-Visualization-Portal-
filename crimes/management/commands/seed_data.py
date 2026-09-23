@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.conf import settings
 from crimes.models import CrimeRecord, CrimeAlert, PatrolSchedule
 
 CRIME_TYPES = [
@@ -131,10 +132,27 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--count', type=int, default=70, help='Number of records to create')
         parser.add_argument('--flush', action='store_true', help='Delete existing crime records before seeding')
+        parser.add_argument('--force', action='store_true', help='[DANGER] Bypass production safety guard (NOT recommended on live servers)')
 
     def handle(self, *args, **options):
         count = options['count']
         flush = options['flush']
+        force = options.get('force', False)
+
+        # ─── PRODUCTION SAFETY GUARD ─────────────────────────────────────────
+        # Block execution if DEBUG=False (production environment) unless --force
+        # is explicitly supplied. This prevents accidental creation of demo
+        # accounts with well-known default passwords on a live server.
+        if not settings.DEBUG and not force:
+            self.stderr.write(self.style.ERROR(
+                "\n[SECURITY BLOCK] seed_data is DISABLED in production (DEBUG=False).\n"
+                "Running this command on a live server would create accounts with\n"
+                "publicly known demo passwords (Admin@2026, Officer@2026, Citizen@2026).\n\n"
+                "To create a production admin, run:  python manage.py createsuperuser\n"
+                "To override this guard (NOT recommended): add --force flag.\n"
+            ))
+            return
+        # ─────────────────────────────────────────────────────────────────────
 
         if flush:
             deleted, _ = CrimeRecord.objects.all().delete()

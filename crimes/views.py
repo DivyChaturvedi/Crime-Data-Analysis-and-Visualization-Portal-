@@ -656,10 +656,11 @@ def admin_panel(request):
 
 @login_required
 @user_passes_test(is_admin_or_staff)
-def admin_update_status(request, pk, new_status):
+def admin_update_status(request, pk, new_status=None):
     crime = get_object_or_404(CrimeRecord, pk=pk)
-    if new_status in ['approved', 'investigating', 'resolved', 'rejected']:
-        crime.status = new_status
+    target_status = request.POST.get('new_status') or new_status
+    if target_status in ['approved', 'investigating', 'resolved', 'rejected']:
+        crime.status = target_status
         crime.save()
         messages.success(request, f"FIR #{crime.fir_number} status updated to {crime.get_status_display()}.")
     return redirect('admin_panel')

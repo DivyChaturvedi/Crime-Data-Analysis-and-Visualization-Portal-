@@ -1,17 +1,44 @@
 import os
+import sys
+import warnings
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Security: Secret Key configuration with safe fallback for local development
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-cdavp-demo-secret-key-2026')
+# ── Secret Key ───────────────────────────────────────────────────────────────
+# Must be set via .env SECRET_KEY in production.
+# Generate a new one: python -c "import secrets; print(secrets.token_urlsafe(50))"
+_DEFAULT_SECRET = 'django-insecure-cdavp-demo-DO-NOT-USE-IN-PRODUCTION-2026'
+SECRET_KEY = os.getenv('SECRET_KEY', _DEFAULT_SECRET)
 
-# Security: DEBUG mode toggle (Must be False in production)
+# ── Debug Mode ───────────────────────────────────────────────────────────────
+# SECURITY WARNING: keep DEBUG=False in production.
+# With DEBUG=True, detailed error tracebacks are exposed to all visitors.
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-# Security: Allowed Hosts
-ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS', '*')
-ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS_ENV.split(',') if h.strip()] or ['*']
+# ── Allowed Hosts ────────────────────────────────────────────────────────────
+# In production, set ALLOWED_HOSTS in .env to your domain (e.g. yourdomain.com).
+# Wildcard '*' is restricted to local development only.
+_ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost')
+ALLOWED_HOSTS = [h.strip() for h in _ALLOWED_HOSTS_ENV.split(',') if h.strip()]
+
+# ── Production Safety Checks ─────────────────────────────────────────────────
+# Emit warnings if insecure defaults are detected outside of tests/local dev.
+_is_running_tests = 'test' in sys.argv
+if not DEBUG and not _is_running_tests:
+    if SECRET_KEY == _DEFAULT_SECRET:
+        warnings.warn(
+            "[SECURITY] SECRET_KEY is set to the insecure demo default. "
+            "Set a unique SECRET_KEY in your .env file before going live.",
+            stacklevel=2
+        )
+    if '*' in ALLOWED_HOSTS:
+        warnings.warn(
+            "[SECURITY] ALLOWED_HOSTS contains '*' in a production environment. "
+            "Set ALLOWED_HOSTS to your specific domain in .env.",
+            stacklevel=2
+        )
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',

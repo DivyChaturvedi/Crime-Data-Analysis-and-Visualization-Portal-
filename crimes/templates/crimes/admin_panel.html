@@ -104,11 +104,12 @@
             <td>{{ p.reported_by.username|default:"Anonymous" }}</td>
             <td class="text-muted small">{{ p.created_at|date:"d M, H:i" }}</td>
             <td class="text-end">
-              <div class="d-inline-flex gap-1">
-                <a href="{% url 'admin_update_status' p.pk 'approved' %}" class="btn btn-sm btn-success py-1 px-2" title="Approve & Verify">Approve</a>
-                <a href="{% url 'admin_update_status' p.pk 'investigating' %}" class="btn btn-sm btn-primary py-1 px-2" title="Start Investigation">Investigate</a>
-                <a href="{% url 'admin_update_status' p.pk 'rejected' %}" class="btn btn-sm btn-outline-danger py-1 px-2" onclick="return confirm('Reject this report?')" title="Reject">Reject</a>
-              </div>
+              <form method="POST" action="{% url 'admin_update_status' p.pk %}" class="d-inline-flex gap-1 m-0">
+                {% csrf_token %}
+                <button type="submit" name="new_status" value="approved" class="btn btn-sm btn-success py-1 px-2" title="Approve & Verify">Approve</button>
+                <button type="submit" name="new_status" value="investigating" class="btn btn-sm btn-primary py-1 px-2" title="Start Investigation">Investigate</button>
+                <button type="submit" name="new_status" value="rejected" class="btn btn-sm btn-outline-danger py-1 px-2" onclick="return confirm('Reject this report?')" title="Reject">Reject</button>
+              </form>
             </td>
           </tr>
           {% empty %}
